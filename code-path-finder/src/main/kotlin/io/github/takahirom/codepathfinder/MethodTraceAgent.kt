@@ -6,7 +6,7 @@ import java.util.Vector
  * ByteBuddy自動変換エージェント（設定可能版）
  */
 object MethodTraceAgent {
-    private const val DEBUG = true
+    private const val DEBUG = false
     private var config: MethodTraceRule.Config? = null
     private var isInitialized = false
     
@@ -220,11 +220,18 @@ object MethodTraceAgent {
         }
         
         val classPath = className.replace("/", ".")
-        if (DEBUG) println("[MethodTrace] shouldTransformClass: evaluating $className (classPath: $classPath) with config.packageIncludes=${config.packageIncludes}")
+        if (DEBUG) println("[MethodTrace] shouldTransformClass: evaluating $className (classPath: $classPath)")
         
-        // Package exclusion check
-        if (config.packageExcludes.any { classPath.contains(it) }) {
-            if (DEBUG) println("[MethodTrace] shouldTransformClass: EXCLUDED by packageExcludes - $className")
+        // Exclude system and framework classes
+        val excludedPrefixes = listOf(
+            "java.", "javax.", "kotlin.", "kotlinx.",
+            "org.gradle.", "org.junit.", "org.jetbrains.",
+            "net.bytebuddy.", "sun.", "jdk.",
+            "org.slf4j.", "ch.qos.logback."
+        )
+        
+        if (excludedPrefixes.any { classPath.startsWith(it) }) {
+            if (DEBUG) println("[MethodTrace] shouldTransformClass: EXCLUDED system class - $className")
             return false
         }
         
@@ -234,12 +241,19 @@ object MethodTraceAgent {
             return false
         }
         
-        // Package inclusion check
-        val shouldInclude = config.packageIncludes.any { 
-            val pattern = it.replace(".", "/")
-            val matches = className.contains(pattern)
-            if (DEBUG) println("[MethodTrace] shouldTransformClass: checking pattern '$pattern' against '$className' -> $matches")
-            matches
+        // Basic inclusion check - create a dummy TraceEvent to test the filter
+        val dummyEvent = TraceEvent(
+            className = classPath,
+            methodName = "dummy",
+            args = emptyArray(),
+            depth = 0
+        )
+        
+        val shouldInclude = try {
+            config.filter(dummyEvent)
+        } catch (e: Exception) {
+            if (DEBUG) println("[MethodTrace] Filter threw exception for $className: ${e.message}")
+            false
         }
         
         if (DEBUG) println("[MethodTrace] shouldTransformClass: FINAL DECISION for $className -> $shouldInclude")

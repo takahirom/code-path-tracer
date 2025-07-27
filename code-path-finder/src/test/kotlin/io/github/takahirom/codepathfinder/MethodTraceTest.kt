@@ -8,10 +8,7 @@ class MethodTraceTest {
     @get:Rule
     val methodTraceRule = MethodTraceRule.builder()
         .packageIncludes("io.github.takahirom.codepathfinder")
-        .argMaxLength(10)
-        .returnMaxLength(20)
-        .showArguments(true)
-        .showReturns(true)
+        .methodExcludes("toString", "hashCode", "equals")
         .build()
     
     @Test

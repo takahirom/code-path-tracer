@@ -1,7 +1,7 @@
 package io.github.takahirom.codepathfinder
 
 /**
- * ByteBuddy Advice用の静的クラス（設定可能版）
+ * ByteBuddy Advice用の静的クラス（TraceEvent版）
  */
 class MethodTraceAdvice {
     companion object {
@@ -14,9 +14,9 @@ class MethodTraceAdvice {
             val config = MethodTraceAgent.getConfig() ?: return
             
             val depth = depthCounter.get() ?: 0
-            val indent = " ".repeat(depth)
             
-            val shortMethod = method
+            // Parse method signature to extract class and method name
+            val methodPart = method.substringBefore("(")
                 .replace("public static final ", "")
                 .replace("public final ", "")
                 .replace("private final ", "")
@@ -24,39 +24,40 @@ class MethodTraceAdvice {
                 .replace("public ", "")
                 .replace("private ", "")
                 .replace("static ", "")
-                .let { cleaned ->
-                    val methodPart = cleaned.substringBefore("(")
-                    val parts = methodPart.split(".")
-                    if (parts.size >= 2) {
-                        "${parts[parts.size - 2]}.${parts.last()}"
-                    } else {
-                        methodPart
-                    }
-                }
             
-            // Method exclusion check
-            val methodName = shortMethod.substringAfterLast(".")
-            if (config.methodExcludes.contains(methodName)) {
+            // Handle return type - method format is "returnType className.methodName"
+            val parts = methodPart.split(" ")
+            val classMethodPart = if (parts.size > 1) {
+                parts.drop(1).joinToString(" ") // Skip return type
+            } else {
+                methodPart
+            }
+            
+            val dotParts = classMethodPart.split(".")
+            val className = if (dotParts.size >= 2) {
+                dotParts.dropLast(1).joinToString(".")
+            } else {
+                "Unknown"
+            }
+            val methodName = dotParts.lastOrNull() ?: "unknown"
+            
+            // Create TraceEvent for filtering
+            val traceEvent = TraceEvent(
+                className = className,
+                methodName = methodName,
+                args = args,
+                depth = depth
+            )
+            
+            // Apply filter
+            if (!config.filter(traceEvent)) {
                 depthCounter.set(depth + 1)  // Update depth but don't log
                 return
             }
             
-            val argsStr = if (!config.showArguments || args.isEmpty()) {
-                ""
-            } else {
-                val argsList = args.mapIndexed { index, arg ->
-                    val argValue = arg?.toString() ?: "null"
-                    val cleanValue = if (argValue.contains('.') && argValue.matches(Regex("^[a-zA-Z][a-zA-Z0-9.]*[a-zA-Z0-9]$"))) {
-                        argValue.substringAfterLast('.')
-                    } else {
-                        argValue
-                    }.take(config.argMaxLength)
-                    "arg$index=$cleanValue"
-                }.joinToString(", ")
-                "($argsList)"
-            }
-            
-            println("[MethodTrace] $indent→ ENTERING: $shortMethod$argsStr")
+            // Format and print
+            val formattedOutput = config.formatter(traceEvent)
+            println("$formattedOutput")
             depthCounter.set(depth + 1)
         }
         
@@ -67,9 +68,9 @@ class MethodTraceAdvice {
             
             val depth = (depthCounter.get() ?: 1) - 1
             depthCounter.set(depth)
-            val indent = " ".repeat(depth)
             
-            val shortMethod = method
+            // Parse method signature to extract class and method name
+            val methodPart = method.substringBefore("(")
                 .replace("public static final ", "")
                 .replace("public final ", "")
                 .replace("private final ", "")
@@ -77,33 +78,32 @@ class MethodTraceAdvice {
                 .replace("public ", "")
                 .replace("private ", "")
                 .replace("static ", "")
-                .let { cleaned ->
-                    val methodPart = cleaned.substringBefore("(")
-                    val parts = methodPart.split(".")
-                    if (parts.size >= 2) {
-                        "${parts[parts.size - 2]}.${parts.last()}"
-                    } else {
-                        methodPart
-                    }
-                }
             
-            // Method exclusion check for exit as well
-            val methodName = shortMethod.substringAfterLast(".")
-            if (config.methodExcludes.contains(methodName)) {
+            val parts = methodPart.split(".")
+            val className = if (parts.size >= 2) {
+                parts.dropLast(1).joinToString(".")
+            } else {
+                "Unknown"
+            }
+            val methodName = parts.lastOrNull() ?: "unknown"
+            
+            // Create TraceEvent for filtering (exit event with return value)
+            val traceEvent = TraceEvent(
+                className = className,
+                methodName = methodName,
+                args = emptyArray(), // Args not available at exit
+                returnValue = returnValue,
+                depth = depth
+            )
+            
+            // Apply filter
+            if (!config.filter(traceEvent)) {
                 return
             }
             
-            val returnStr = if (!config.showReturns) {
-                ""
-            } else if (returnValue == null) {
-                " -> null"
-            } else if (returnValue::class.java.name == "void" || returnValue::class.java.name == "java.lang.Void") {
-                ""
-            } else {
-                " -> ${returnValue.toString().take(config.returnMaxLength)}"
-            }
-            
-            println("[MethodTrace] $indent← EXITING: $shortMethod$returnStr")
+            // Format and print (could be different formatter for exit events)
+            val formattedOutput = config.formatter(traceEvent)
+            println("← $formattedOutput")
         }
     }
 }
