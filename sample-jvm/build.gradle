@@ -1,0 +1,37 @@
+plugins {
+  id 'java-library'
+  id 'org.jetbrains.kotlin.jvm'
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+  useJUnit()
+  
+  // Enable test logging to see println output
+  testLogging {
+    events "passed", "skipped", "failed", "standardOut", "standardError"
+    showStandardStreams = true
+  }
+  
+  // JVM arguments for ByteBuddy
+  jvmArgs('-noverify')
+  jvmArgs('--add-opens=java.base/java.lang=ALL-UNNAMED')
+  jvmArgs('--add-opens=java.base/java.util=ALL-UNNAMED')
+  maxHeapSize = "4g"
+}
+
+dependencies {
+  // Code path finder library
+  implementation project(":code-path-finder")
+  
+  // Testing
+  testImplementation 'junit:junit:4.13.2'
+  
+  // ByteBuddy for method tracing in tests
+  testImplementation 'net.bytebuddy:byte-buddy:1.14.5'
+  testImplementation 'net.bytebuddy:byte-buddy-agent:1.14.5'
+}

@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+
+# Kotlin/Java
+*.class
+*.kt.class
+.kotlin/
+
+# Android
+*.apk
+*.dex
+local.properties
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+debug_output.log
+*.tmp
+*.temp
+
+# Test outputs
+**/test-results/
+**/reports/
+TEST-*.xml
