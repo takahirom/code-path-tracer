@@ -16,30 +16,18 @@ class MethodTraceAdvice {
             val depth = depthCounter.get() ?: 0
             
             // Parse method signature to extract class and method name
-            val methodPart = method.substringBefore("(")
-                .replace("public static final ", "")
-                .replace("public final ", "")
-                .replace("private final ", "")
-                .replace("static final ", "")
-                .replace("public ", "")
-                .replace("private ", "")
-                .replace("static ", "")
+            // Avoid Kotlin string operations that might cause recursion
+            val parenIndex = method.indexOf('(')
+            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
             
-            // Handle return type - method format is "returnType className.methodName"
-            val parts = methodPart.split(" ")
-            val classMethodPart = if (parts.size > 1) {
-                parts.drop(1).joinToString(" ") // Skip return type
-            } else {
-                methodPart
-            }
+            // Simple parsing without complex string operations
+            val spaceIndex = methodPart.lastIndexOf(' ')
+            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
             
-            val dotParts = classMethodPart.split(".")
-            val className = if (dotParts.size >= 2) {
-                dotParts.dropLast(1).joinToString(".")
-            } else {
-                "Unknown"
-            }
-            val methodName = dotParts.lastOrNull() ?: "unknown"
+            
+            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
+            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
+            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
             
             // Create TraceEvent for filtering
             val traceEvent = TraceEvent(
@@ -63,29 +51,24 @@ class MethodTraceAdvice {
         
         @JvmStatic  
         @net.bytebuddy.asm.Advice.OnMethodExit
-        fun methodExit(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.Return returnValue: Any?) {
+        fun methodExit(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.Return(typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) returnValue: Any?) {
             val config = MethodTraceAgent.getConfig() ?: return
             
             val depth = (depthCounter.get() ?: 1) - 1
             depthCounter.set(depth)
             
             // Parse method signature to extract class and method name
-            val methodPart = method.substringBefore("(")
-                .replace("public static final ", "")
-                .replace("public final ", "")
-                .replace("private final ", "")
-                .replace("static final ", "")
-                .replace("public ", "")
-                .replace("private ", "")
-                .replace("static ", "")
+            // Avoid Kotlin string operations that might cause recursion
+            val parenIndex = method.indexOf('(')
+            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
             
-            val parts = methodPart.split(".")
-            val className = if (parts.size >= 2) {
-                parts.dropLast(1).joinToString(".")
-            } else {
-                "Unknown"
-            }
-            val methodName = parts.lastOrNull() ?: "unknown"
+            // Simple parsing without complex string operations
+            val spaceIndex = methodPart.lastIndexOf(' ')
+            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
+            
+            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
+            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
+            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
             
             // Create TraceEvent for filtering (exit event with return value)
             val traceEvent = TraceEvent(

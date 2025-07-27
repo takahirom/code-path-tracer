@@ -22,8 +22,23 @@ data class TraceEvent(
     /**
      * Default formatting for trace events.
      */
-    fun defaultFormat(): String = 
-        "${" ".repeat(depth)}→ $fullMethodName(${args.size})"
+    fun defaultFormat(): String {
+        val indent = when (depth) {
+            0 -> ""
+            1 -> " "
+            2 -> "  "
+            3 -> "   "
+            4 -> "    "
+            5 -> "     "
+            6 -> "      "
+            7 -> "       "
+            8 -> "        "
+            9 -> "         "
+            10 -> "          "
+            else -> "           " // max 10+ levels
+        }
+        return "$indent→ $fullMethodName(${args.size})"
+    }
     
     /**
      * Minimal formatting showing only method name.
@@ -66,6 +81,15 @@ data class TraceEvent(
     }
 }
 
+// Default filter and formatter objects to avoid lambda anonymous classes
+object DefaultFilter {
+    fun filter(event: TraceEvent): Boolean = true
+}
+
+object DefaultFormatter {
+    fun format(event: TraceEvent): String = event.defaultFormat()
+}
+
 /**
  * JUnit Rule for automatic method tracing using ByteBuddy
  * 
@@ -94,8 +118,8 @@ class MethodTraceRule private constructor(
 ) : TestRule {
     
     data class Config(
-        val filter: (TraceEvent) -> Boolean = { true },
-        val formatter: (TraceEvent) -> String = TraceEvent::defaultFormat,
+        val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
+        val formatter: (TraceEvent) -> String = DefaultFormatter::format,
         val enabled: Boolean = true
     )
     
@@ -130,10 +154,14 @@ class MethodTraceRule private constructor(
         private var filter: (TraceEvent) -> Boolean = { true }
         private var formatter: (TraceEvent) -> String = TraceEvent::defaultFormat
         private var enabled = true
+        private var typeFilter: (String) -> Boolean = { className -> 
+            className.contains("codepathfinder") && className.contains("sample") 
+        }
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
+        fun typeFilter(predicate: (String) -> Boolean) = apply { typeFilter = predicate }
         
         // Convenience methods for common patterns
         fun packageIncludes(vararg packages: String) = apply {

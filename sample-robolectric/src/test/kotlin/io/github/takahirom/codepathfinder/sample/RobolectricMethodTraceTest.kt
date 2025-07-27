@@ -14,9 +14,6 @@ class RobolectricMethodTraceTest {
     
     @get:Rule
     val methodTraceRule = MethodTraceRule.builder()
-        .packageIncludes("io.github.takahirom.codepathfinder.sample")
-        .packageExcludes("android", "androidx", "org.robolectric")
-        .methodExcludes("toString", "hashCode", "equals")
         .build()
     
     @Test

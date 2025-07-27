@@ -1,49 +1,60 @@
 #!/bin/bash
 
-# Code Path Finder - Debug Trace Helper Script
-# ByteBuddyメソッドトレースのデバッグを補助するスクリプト
-
+# Code Path Finder - Debug Trace Helper (Minimal Version)
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+echo "🔍 Code Path Finder - Method Trace Verification"
+echo "=============================================="
 
-echo "🔍 Code Path Finder - Debug Trace Helper"
-echo "======================================="
-
-# テスト実行とログフィルタリング
-echo ""
-echo "📋 Running test with trace output..."
-echo ""
-
-# テスト実行してトレース関連のログのみを抽出
+# Run test and check HTML report
+echo "Running Activity test..."
 ./gradlew sample-robolectric:testDebugUnitTest \
-  --tests="RobolectricMethodTraceTest.testBusinessLogicWithTrace" \
-  --rerun-tasks \
-  --console=plain 2>&1 | \
-  grep -E "(MethodTrace|ENTERING|EXITING|→|←)" | \
-  grep -v "Transform called for:" | \
-  grep -v "shouldTransformClass:" | \
-  grep -v "checking pattern" | \
-  grep -v "FINAL DECISION" | \
-  grep -v "Transform REJECTED" | \
-  grep -v "Transform approved" | \
-  grep -v "Successfully transformed" | \
-  grep -v "Transformer invoked"
+  --tests="RobolectricMethodTraceTest.testActivityCreationWithTrace" \
+  --rerun-tasks --console=plain > /dev/null 2>&1
+
+html_report="sample-robolectric/build/reports/tests/testDebugUnitTest/classes/io.github.takahirom.codepathfinder.sample.RobolectricMethodTraceTest.html"
+
+if [ ! -f "$html_report" ]; then
+    echo "❌ ERROR: HTML report not found" >&2
+    exit 1
+fi
 
 echo ""
-echo "✅ Debug trace completed!"
+echo "🎯 Method Trace Verification Results:"
+
+# Check for specific target methods
+main_activity=$(grep -o "MainActivity\.onCreate[^<]*" "$html_report" 2>/dev/null | head -1)
+snapshot_thread=$(grep -o "SnapshotThreadLocal\.get[^<]*" "$html_report" 2>/dev/null | head -1)
+phone_window=$(grep -o "PhoneWindow\.getPanelState[^<]*" "$html_report" 2>/dev/null | head -1)
+
+exit_code=0
+
+if [ -n "$main_activity" ]; then
+    echo "✅ Project:          MainActivity.onCreate"
+else
+    echo "❌ Project:          MainActivity.onCreate - NOT FOUND" >&2
+    exit_code=1
+fi
+
+if [ -n "$snapshot_thread" ]; then
+    echo "✅ Library:          SnapshotThreadLocal.get"
+else
+    echo "❌ Library:          SnapshotThreadLocal.get - NOT FOUND" >&2
+    exit_code=1
+fi
+
+if [ -n "$phone_window" ]; then
+    echo "✅ Android Framework: PhoneWindow.getPanelState"
+else
+    echo "❌ Android Framework: PhoneWindow.getPanelState - NOT FOUND" >&2
+    exit_code=1
+fi
+
 echo ""
-echo "💡 Expected output should include:"
-echo "   → ENTERING: SampleCalculator.add(arg0=10, arg1=5)"
-echo "   ← EXITING: SampleCalculator.add -> 15"
-echo "   → ENTERING: SampleCalculator.multiply(arg0=15, arg1=2)"
-echo "   ← EXITING: SampleCalculator.multiply -> 30"
-echo "   → ENTERING: SampleCalculator.complexCalculation(arg0=5, arg1=3)"
-echo "     → ENTERING: SampleCalculator.add(arg0=5, arg1=3)"
-echo "     ← EXITING: SampleCalculator.add -> 8"
-echo "     → ENTERING: SampleCalculator.multiply(arg0=8, arg1=2)"
-echo "     ← EXITING: SampleCalculator.multiply -> 16"
-echo "     → ENTERING: SampleCalculator.add(arg0=16, arg1=12)"
-echo "     ← EXITING: SampleCalculator.add -> 28"
-echo "   ← EXITING: SampleCalculator.complexCalculation -> 28"
+if [ $exit_code -eq 0 ]; then
+    echo "🎉 All method traces verified successfully!"
+else
+    echo "💡 Missing methods may be filtered or not called." >&2
+fi
+
+exit $exit_code

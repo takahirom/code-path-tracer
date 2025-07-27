@@ -1,61 +1,62 @@
 package io.github.takahirom.codepathfinder
 
-import java.util.Vector
+import net.bytebuddy.agent.builder.AgentBuilder
+import net.bytebuddy.description.NamedElement
+import net.bytebuddy.description.type.TypeDescription
+import net.bytebuddy.dynamic.ClassFileLocator
+import net.bytebuddy.dynamic.loading.ClassInjector
+import net.bytebuddy.implementation.bind.annotation.SuperCall
+import net.bytebuddy.matcher.ElementMatchers
+import net.bytebuddy.utility.JavaModule
+import java.io.File
+import java.lang.instrument.Instrumentation
+import java.nio.file.Files
+import java.util.concurrent.Callable
+import java.util.jar.JarFile
+
 
 /**
  * ByteBuddy automatic transformation agent (configurable version)
  */
 object MethodTraceAgent {
-    private const val DEBUG = false
+    private const val DEBUG = true
     private var config: MethodTraceRule.Config? = null
     private var isInitialized = false
-    
-    // Static initialization block
-    init {
-        try {
-            val defaultConfig = MethodTraceRule.Config()
-            initialize(defaultConfig)
-        } catch (e: Exception) {
-            // Silent initialization
-        }
-    }
-    
+
+    // Remove static initialization to avoid early class loading issues
+
     fun initialize(config: MethodTraceRule.Config) {
         if (DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
-        
+
         if (isInitialized) {
             // Already initialized, just update config
             this.config = config
             if (DEBUG) println("[MethodTrace] Agent already initialized, updating config only")
             return
         }
-        
+
         this.config = config
         if (DEBUG) println("[MethodTrace] Starting agent initialization with config: $config")
-        
+
         // Enable ByteBuddy experimental features
         System.setProperty("net.bytebuddy.experimental", "true")
         if (DEBUG) println("[MethodTrace] Set ByteBuddy experimental property")
-        
+
         try {
             if (DEBUG) println("[MethodTrace] Installing ByteBuddy agent...")
-            val instrumentation = Class.forName("net.bytebuddy.agent.ByteBuddyAgent").getMethod("install").invoke(null)
+            val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
             if (DEBUG) println("[MethodTrace] ByteBuddy agent installed: $instrumentation")
-            
-            val transformer = createTransformer(config)
-            if (DEBUG) println("[MethodTrace] Created transformer: $transformer")
-            
-            Class.forName("java.lang.instrument.Instrumentation")
-                .getMethod("addTransformer", Class.forName("java.lang.instrument.ClassFileTransformer"), Boolean::class.javaPrimitiveType)
-                .invoke(instrumentation, transformer, true)
-            if (DEBUG) println("[MethodTrace] Transformer added to instrumentation")
-                
-            // retransformClasses強制実行
-            retransformExistingClasses(instrumentation!!)
-            
+
+            val agentBuilder = createAgentBuilder(config, instrumentation)
+            if (DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
+
+            agentBuilder
+                .installOnByteBuddyAgent()
+            if (DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
+
             isInitialized = true
             if (DEBUG) println("[MethodTrace] Agent initialization completed successfully")
-                
+
         } catch (e: Exception) {
             if (DEBUG) {
                 println("[MethodTrace] Agent initialization FAILED: ${e.message}")
@@ -63,200 +64,172 @@ object MethodTraceAgent {
             }
         }
     }
-    
-    private fun retransformExistingClasses(instrumentation: Any) {
-        try {
-            val instClass = Class.forName("java.lang.instrument.Instrumentation")
-            
-            val canRetransform = instClass.getMethod("isRetransformClassesSupported").invoke(instrumentation) as Boolean
-            if (DEBUG) println("[MethodTrace] Retransform supported: $canRetransform")
-            
-            if (canRetransform) {
-                // Target classes would be dynamically discovered here if needed
-                // Generic version does not specify particular classes
-                if (DEBUG) println("[MethodTrace] Retransform setup completed")
-            }
-        } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Retransform failed: ${e.message}")
-        }
+
+
+
+
+    @Suppress("NewApi")
+    private fun createAgentBuilder(config: MethodTraceRule.Config, instrumentation: Instrumentation): net.bytebuddy.agent.builder.AgentBuilder {
+        if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
+        val temp = Files.createTempDirectory("tmp").toFile()
+        // Use individual class injection instead of JAR injection
+        fallbackToIndividualInjection(temp, instrumentation)
+      return createAgentBuilderInstance(config)
     }
-    
-    private fun createTransformer(config: MethodTraceRule.Config): Any {
-        if (DEBUG) println("[MethodTrace] createTransformer called with config: $config")
-        
-        val handler = java.lang.reflect.InvocationHandler { _, method, args ->
-            if (DEBUG) println("[MethodTrace] Transformer invoked: method=${method.name}, args.size=${args?.size}")
-            
-            if (method.name == "transform") {
-                if (args?.size == 6) {
-                    val loader = args[0] as? ClassLoader
-                    val moduleName = args[1] as? String
-                    val className = args[2] as? String
-                    val classBeingRedefined = args[3] as? Class<*>
-                    val protectionDomain = args[4]
-                    val classfileBuffer = args[5] as? ByteArray
-                    
-                    if (DEBUG) println("[MethodTrace] Transform called for: className=$className, loader=$loader, module=$moduleName, redefined=$classBeingRedefined, bufferSize=${classfileBuffer?.size}")
-                    
-                    val currentConfig = this@MethodTraceAgent.config ?: config
-                    if (shouldTransformClass(className, currentConfig)) {
-                        if (DEBUG) println("[MethodTrace] Transform approved for: $className")
-                        
-                        try {
-                            val result = if (classBeingRedefined != null && classfileBuffer != null) {
-                                // Simple retransformClasses case
-                                val transformedBytes = net.bytebuddy.ByteBuddy()
-                                    .redefine(classBeingRedefined, net.bytebuddy.dynamic.ClassFileLocator.Simple.of(classBeingRedefined.name, classfileBuffer))
-                                    .visit(net.bytebuddy.asm.Advice.to(MethodTraceAdvice::class.java).on(
-                                        net.bytebuddy.matcher.ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                                            .and(net.bytebuddy.matcher.ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isConstructor()))
-                                            .and(net.bytebuddy.matcher.ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isTypeInitializer()))
-                                    ))
-                                    .make()
-                                    .bytes
-                                
-                                if (DEBUG) println("[MethodTrace] Successfully transformed class: $className with ${transformedBytes.size} bytes")
-                                transformedBytes
-                            } else if (classfileBuffer != null && className != null) {
-                                // Cross-module class loading case
-                                val classFileLocator = net.bytebuddy.dynamic.ClassFileLocator.Compound(
-                                    net.bytebuddy.dynamic.ClassFileLocator.Simple.of(className.replace("/", "."), classfileBuffer),
-                                    net.bytebuddy.dynamic.ClassFileLocator.ForClassLoader.ofSystemLoader(),
-                                    net.bytebuddy.dynamic.ClassFileLocator.ForClassLoader.of(Thread.currentThread().contextClassLoader),
-                                    *getAllAvailableClassFileLocators().toTypedArray()
-                                )
-                                val typePool = net.bytebuddy.pool.TypePool.Default.of(classFileLocator)
-                                val typeDescription = typePool.describe(className.replace("/", ".")).resolve()
-                                
-                                val transformedBytes = net.bytebuddy.ByteBuddy()
-                                    .redefine<Any>(typeDescription, classFileLocator)
-                                    .visit(net.bytebuddy.asm.Advice.to(MethodTraceAdvice::class.java).on(
-                                        net.bytebuddy.matcher.ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                                            .and(net.bytebuddy.matcher.ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isConstructor()))
-                                            .and(net.bytebuddy.matcher.ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isTypeInitializer()))
-                                    ))
-                                    .make()
-                                    .bytes
-                                
-                                if (DEBUG) println("[MethodTrace] Successfully transformed class (new-load): $className with ${transformedBytes.size} bytes")
-                                transformedBytes
-                            } else {
-                                null
-                            }
-                            
-                            if (result != null) {
-                                return@InvocationHandler result
-                            }
-                        } catch (e: Exception) {
-                            if (DEBUG) {
-                                println("[MethodTrace] Transform FAILED for $className: ${e.message}")
-                                e.printStackTrace()
-                            }
+
+    private fun <T:Any>addClass(
+      clazz: Class<T>,
+        instrumentation: Instrumentation,
+        temp: File
+    ) {
+        try{
+            // Handle both Bootstrap ClassLoader (null) and Application ClassLoader
+            val classLoader = clazz.classLoader
+            if (classLoader == null) {
+                if (DEBUG) println("[MethodTrace] Processing Bootstrap ClassLoader class: ${clazz.name}")
+                // For Bootstrap ClassLoader classes, try to get the JAR from protection domain
+                val codeSource = clazz.protectionDomain?.codeSource
+                if (codeSource != null) {
+                    try {
+                        val jarFile = File(codeSource.location.toURI())
+                        if (jarFile.exists() && jarFile.name.endsWith(".jar")) {
+                            instrumentation.appendToBootstrapClassLoaderSearch(JarFile(jarFile))
+                            if (DEBUG) println("[MethodTrace] Added Bootstrap JAR: ${jarFile.absolutePath}")
                         }
-                    } else {
-                        if (DEBUG) println("[MethodTrace] Transform REJECTED for: $className")
+                    } catch (e: Exception) {
+                        if (DEBUG) println("[MethodTrace] Failed to add Bootstrap JAR for ${clazz.name}: ${e.message}")
                     }
-                } else {
-                    if (DEBUG) println("[MethodTrace] Transform called with unexpected args.size: ${args?.size}")
                 }
             } else {
-                if (DEBUG) println("[MethodTrace] Transformer method called: ${method.name}")
+                if (DEBUG) println("[MethodTrace] Processing Application ClassLoader class: ${clazz.name}")
+                // For Application ClassLoader classes
+                val codeSource = clazz.protectionDomain?.codeSource
+                if (codeSource != null) {
+                    val jarFile = File(codeSource.location.toURI())
+                    if (DEBUG) println("[MethodTrace] Adding JAR to bootstrap classpath: ${jarFile.absolutePath}")
+
+                    // Add JAR to Bootstrap ClassPath
+                    instrumentation.appendToBootstrapClassLoaderSearch(JarFile(jarFile))
+                    if (DEBUG) println("[MethodTrace] JAR successfully added to bootstrap classpath")
+                }
             }
-            null
+        } catch (e: Exception) {
+            if (DEBUG) {
+                println("[MethodTrace] Failed to add JAR for class ${clazz.name}: ${e.message}")
+            }
         }
-        
-        return java.lang.reflect.Proxy.newProxyInstance(
-            Class.forName("java.lang.instrument.ClassFileTransformer").classLoader,
-            arrayOf(Class.forName("java.lang.instrument.ClassFileTransformer")),
-            handler
-        )
     }
-    
-    fun getConfig(): MethodTraceRule.Config? = config
-    
-    private fun getAllAvailableClassFileLocators(): List<net.bytebuddy.dynamic.ClassFileLocator> {
-        val locators = mutableListOf<net.bytebuddy.dynamic.ClassFileLocator>()
-        
-        try {
-            // Add ClassFileLocators for all available ClassLoaders
-            val allClassLoaders = mutableSetOf<ClassLoader>()
-            
-            // System ClassLoader
-            allClassLoaders.add(ClassLoader.getSystemClassLoader())
-            
-            // Current thread ClassLoader
-            Thread.currentThread().contextClassLoader?.let { allClassLoaders.add(it) }
-            
-            // Application ClassLoader
+
+    private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
+        val classesToInject = mutableMapOf<TypeDescription.ForLoadedType, ByteArray?>()
+
+        fun addClassAndDependencies(clazz: Class<*>) {
             try {
-                val appClassLoader = this::class.java.classLoader
-                if (appClassLoader != null) {
-                    allClassLoaders.add(appClassLoader)
-                }
-            } catch (_: Exception) {
-                // Ignore
+                classesToInject[TypeDescription.ForLoadedType(clazz)] = ClassFileLocator.ForClassLoader.read(clazz)
+                if (DEBUG) println("[MethodTrace] Added class: ${clazz.name}")
+            } catch (e: Exception) {
+                if (DEBUG) println("[MethodTrace] Failed to add class ${clazz.name}: ${e.message}")
             }
-            
-            // Create ClassFileLocators for each unique ClassLoader
-            allClassLoaders.forEach { classLoader ->
-                try {
-                    locators.add(net.bytebuddy.dynamic.ClassFileLocator.ForClassLoader.of(classLoader))
-                } catch (_: Exception) {
-                    // Continue with next ClassLoader
-                }
-            }
-            
-        } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Failed to create additional ClassFileLocators: ${e.message}")
         }
-        
-        return locators
+
+        // Add essential classes for method tracing
+        addClassAndDependencies(MethodTraceAdvice::class.java)
+        addClassAndDependencies(MethodTraceAdvice.Companion::class.java)
+        addClassAndDependencies(MethodTraceAgent::class.java)
+        addClassAndDependencies(MethodTraceRule.Config::class.java)
+        addClassAndDependencies(TraceEvent::class.java)
+        try {
+            addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFilter"))
+            addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFormatter"))
+        } catch (e: Exception) {
+            if (DEBUG) println("[MethodTrace] Default filter/formatter classes not found")
+        }
+        try {
+            addClassAndDependencies(Class.forName("kotlin.jvm.internal.Intrinsics"))
+        } catch (e: Exception) {
+            if (DEBUG) println("[MethodTrace] Kotlin intrinsics not found")
+        }
+
+        ClassInjector.UsingInstrumentation
+            .of(temp, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, instrumentation)
+            .inject(classesToInject)
     }
-    
-    private fun shouldTransformClass(className: String?, config: MethodTraceRule.Config): Boolean {
-        if (className == null) {
-            if (DEBUG) println("[MethodTrace] shouldTransformClass: className is null")
-            return false
+
+    private fun createAgentBuilderInstance(config: MethodTraceRule.Config): net.bytebuddy.agent.builder.AgentBuilder {
+        return net.bytebuddy.agent.builder.AgentBuilder.Default()
+            .with(object : net.bytebuddy.agent.builder.AgentBuilder.Listener {
+                override fun onDiscovery(
+                    typeName: String,
+                    classLoader: ClassLoader?,
+                    module: JavaModule?,
+                    loaded: Boolean
+                ) {
+                    if (DEBUG && typeName.contains("Sample")) println("[MethodTrace] Discovery: $typeName")
+                }
+                override fun onTransformation(typeDescription: net.bytebuddy.description.type.TypeDescription, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean, dynamicType: net.bytebuddy.dynamic.DynamicType) {
+                    if (DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
+                }
+                override fun onIgnored(typeDescription: net.bytebuddy.description.type.TypeDescription, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean) {
+                    if (DEBUG && typeDescription.name.contains("Sample")) println("[MethodTrace] Ignored: ${typeDescription.name}")
+                }
+                override fun onError(typeName: String, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean, throwable: Throwable) {
+                    if (DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
+                }
+                override fun onComplete(typeName: String, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean) {
+                    if (DEBUG && typeName.contains("Sample")) println("[MethodTrace] Complete: $typeName")
+                }
+            })
+            .disableClassFormatChanges()
+            .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
+            .ignore(
+                ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
+                    .or(
+                        ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathfinder.")
+                            .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathfinder.sample")))
+                    )
+            )
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("java."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("javax."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("sun."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("com.sun."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("android."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("androidx."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("org.robolectric."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("org.junit."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("org.gradle."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("kotlin."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameStartsWith("kotlinx."))
+//            .ignore(net.bytebuddy.matcher.ElementMatchers.nameContains("MethodTrace"))
+            .type(createTypeMatcher(config))
+            .transform(
+                net.bytebuddy.agent.builder.AgentBuilder.Transformer.ForAdvice()
+                    .advice(
+                        ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
+                            .and(ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isConstructor()))
+                            .and(ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isTypeInitializer())),
+                        MethodTraceAdvice::class.java.name
+                    )
+            )
+    }
+
+    fun getConfig(): MethodTraceRule.Config? = config
+
+    private fun createTypeMatcher(config: MethodTraceRule.Config): net.bytebuddy.matcher.ElementMatcher<in net.bytebuddy.description.type.TypeDescription> {
+        return object : net.bytebuddy.matcher.ElementMatcher<net.bytebuddy.description.type.TypeDescription> {
+            override fun matches(target: net.bytebuddy.description.type.TypeDescription): Boolean {
+                if (DEBUG) println("[MethodTrace] Matching type: ${target.name}")
+                return true
+            }
         }
-        
-        val classPath = className.replace("/", ".")
-        if (DEBUG) println("[MethodTrace] shouldTransformClass: evaluating $className (classPath: $classPath)")
-        
-        // Exclude system and framework classes
-        val excludedPrefixes = listOf(
-            "java.", "javax.", "kotlin.", "kotlinx.",
-            "org.gradle.", "org.junit.", "org.jetbrains.",
-            "net.bytebuddy.", "sun.", "jdk.",
-            "org.slf4j.", "ch.qos.logback."
-        )
-        
-        if (excludedPrefixes.any { classPath.startsWith(it) }) {
-            if (DEBUG) println("[MethodTrace] shouldTransformClass: EXCLUDED system class - $className")
-            return false
-        }
-        
-        // Exclude tracing-related classes (only the actual MethodTrace infrastructure classes)
-        if (className.contains("MethodTrace") && classPath.contains("codepathfinder") && !classPath.contains("sample")) {
-            if (DEBUG) println("[MethodTrace] shouldTransformClass: EXCLUDED as MethodTrace class - $className")
-            return false
-        }
-        
-        // Basic inclusion check - create a dummy TraceEvent to test the filter
-        val dummyEvent = TraceEvent(
-            className = classPath,
-            methodName = "dummy",
-            args = emptyArray(),
-            depth = 0
-        )
-        
-        val shouldInclude = try {
-            config.filter(dummyEvent)
-        } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Filter threw exception for $className: ${e.message}")
-            false
-        }
-        
-        if (DEBUG) println("[MethodTrace] shouldTransformClass: FINAL DECISION for $className -> $shouldInclude")
-        return shouldInclude
+    }
+
+
+}
+
+object MyInterceptor {
+    @Throws(java.lang.Exception::class)
+    fun intercept(@SuperCall zuper: Callable<String?>): String? {
+        println("Intercepted!")
+        return zuper.call()
     }
 }
