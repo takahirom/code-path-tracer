@@ -1,7 +1,7 @@
 package io.github.takahirom.codepathfinder
 
 /**
- * ByteBuddy Advice用の静的クラス（TraceEvent版）
+ * Static class for ByteBuddy Advice (TraceEvent version)
  */
 class MethodTraceAdvice {
     companion object {

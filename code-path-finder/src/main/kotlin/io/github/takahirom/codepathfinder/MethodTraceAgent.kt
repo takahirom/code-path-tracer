@@ -3,7 +3,7 @@ package io.github.takahirom.codepathfinder
 import java.util.Vector
 
 /**
- * ByteBuddy自動変換エージェント（設定可能版）
+ * ByteBuddy automatic transformation agent (configurable version)
  */
 object MethodTraceAgent {
     private const val DEBUG = false
@@ -72,8 +72,8 @@ object MethodTraceAgent {
             if (DEBUG) println("[MethodTrace] Retransform supported: $canRetransform")
             
             if (canRetransform) {
-                // 対象クラスを動的に探す場合はここに実装
-                // 汎用化版では特定のクラスを指定しない
+                // Target classes would be dynamically discovered here if needed
+                // Generic version does not specify particular classes
                 if (DEBUG) println("[MethodTrace] Retransform setup completed")
             }
         } catch (e: Exception) {

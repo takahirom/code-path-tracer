@@ -67,7 +67,7 @@ data class TraceEvent(
 }
 
 /**
- * ByteBuddyを使った自動メソッドトレース用のJUnit Rule
+ * JUnit Rule for automatic method tracing using ByteBuddy
  * 
  * Usage:
  * ```
@@ -100,7 +100,7 @@ class MethodTraceRule private constructor(
     )
     
     companion object {
-        private const val DEBUG = true
+        private const val DEBUG = false
         private var isAgentInstalled = false
         
         fun builder() = Builder()
