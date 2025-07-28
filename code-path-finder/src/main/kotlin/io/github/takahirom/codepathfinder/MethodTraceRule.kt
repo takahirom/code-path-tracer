@@ -39,25 +39,6 @@ data class TraceEvent(
     }
     
         
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as TraceEvent
-        return className == other.className &&
-                methodName == other.methodName &&
-                args.contentEquals(other.args) &&
-                returnValue == other.returnValue &&
-                depth == other.depth
-    }
-    
-    override fun hashCode(): Int {
-        var result = className.hashCode()
-        result = 31 * result + methodName.hashCode()
-        result = 31 * result + args.contentHashCode()
-        result = 31 * result + (returnValue?.hashCode() ?: 0)
-        result = 31 * result + depth
-        return result
-    }
 }
 
 // Default filter and formatter objects to avoid lambda anonymous classes
