@@ -7,6 +7,10 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.matcher.ViewMatchers.withText
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -83,8 +87,13 @@ class RobolectricMethodTraceTest {
 
     @Test
     fun testEspressoClickEventTracing() {
-        // Skip Espresso test as it requires fixed ID
-        println("Espresso test skipped - using dynamic View ID")
+        // Use ActivityScenario for proper Espresso integration with Robolectric
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            // Use proper Espresso onView with text matcher to find and click button
+            onView(withText("Increment")).perform(click())
+            
+            println("Espresso test completed with onView()")
+        }
     }
     class SampleCalculator {
         fun add(a: Int, b: Int): Int {
