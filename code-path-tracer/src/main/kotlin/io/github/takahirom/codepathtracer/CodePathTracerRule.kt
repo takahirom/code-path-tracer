@@ -15,6 +15,25 @@ sealed class TraceEvent {
     val shortClassName: String get() = className.substringAfterLast('.')
     val fullMethodName: String get() = "$shortClassName.$methodName"
 
+    companion object {
+        // ThreadLocal guard to prevent infinite recursion during toString() calls
+        private val isToStringCalling = ThreadLocal.withInitial { false }
+        
+        internal fun safeToString(obj: Any?): String {
+            if (isToStringCalling.get()) {
+                return "recursion"
+            }
+            return try {
+                isToStringCalling.set(true)
+                obj?.toString()?.take(10) ?: "null"
+            } catch (e: Exception) {
+                "error " + e.message.orEmpty().take(10)
+            } finally {
+                isToStringCalling.set(false)
+            }
+        }
+    }
+
     /**
      * Method entry event
      */
@@ -76,11 +95,7 @@ sealed class TraceEvent {
             is Enter -> {
                 val argsStr = if (args.isNotEmpty()) {
                     args.joinToString(", ") { arg ->
-                        try {
-                            arg?.toString()?.take(10) ?: "null"
-                        } catch (e: Exception) {
-                            "error " + e.message.orEmpty().take(10)
-                        }
+                        safeToString(arg)
                     }
                 } else {
                     ""
@@ -88,11 +103,7 @@ sealed class TraceEvent {
                 "$indent→ $fullMethodName($argsStr)"
             }
             is Exit -> {
-                val returnStr = try {
-                    returnValue?.toString()?.take(10) ?: ""
-                } catch (e: Exception) {
-                    "error " + e.message.orEmpty().take(10)
-                }
+                val returnStr = safeToString(returnValue)
                 val returnPart = if (returnStr.isNotEmpty()) " = $returnStr" else ""
                 "$indent← $fullMethodName$returnPart"
             }

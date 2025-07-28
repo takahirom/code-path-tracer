@@ -51,6 +51,27 @@ object CodePathTracerAgent {
             resettableTransformer = agentBuilder
                 .installOnByteBuddyAgent()
             if (CodePathTracer.DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
+            
+            // Auto-detect and retransform already loaded classes that might need tracing
+            if (config.autoRetransform) {
+                try {
+                    val candidates = findRetransformCandidates(instrumentation, config)
+                    if (candidates.isNotEmpty()) {
+                        if (CodePathTracer.DEBUG) {
+                            println("[MethodTrace] Auto-detected ${candidates.size} retransform candidates:")
+                            candidates.forEach { clazz ->
+                                println("[MethodTrace]   - ${clazz.name}")
+                            }
+                        }
+                        instrumentation.retransformClasses(*candidates.toTypedArray())
+                    }
+                } catch (e: Exception) {
+                    if (CodePathTracer.DEBUG) {
+                        println("[MethodTrace] Failed to retransform candidates: ${e.message}")
+                        e.printStackTrace()
+                    }
+                }
+            }
 
             isInitialized = true
             if (CodePathTracer.DEBUG) println("[MethodTrace] Agent initialization completed successfully")
@@ -126,6 +147,8 @@ object CodePathTracerAgent {
             .disableClassFormatChanges()
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
+            // Enable retransformation of already loaded classes
+            .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
             .ignore(
                 ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
                     .or(ElementMatchers.nameStartsWith<NamedElement>("java."))
@@ -155,6 +178,87 @@ object CodePathTracerAgent {
     }
 
     fun getConfig(): CodePathTracer.Config? = config
+    
+    /**
+     * Auto-detect classes that should be retransformed for tracing
+     */
+    private fun findRetransformCandidates(instrumentation: Instrumentation, config: CodePathTracer.Config): List<Class<*>> {
+        if (!instrumentation.isRetransformClassesSupported) {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Retransformation not supported")
+            return emptyList()
+        }
+        
+        val loadedClasses = instrumentation.allLoadedClasses
+        val candidates = mutableListOf<Class<*>>()
+        
+        for (clazz in loadedClasses) {
+            try {
+                // Skip if not modifiable
+                if (!instrumentation.isModifiableClass(clazz)) continue
+                
+                // Skip classes that would be ignored anyway
+                if (wouldBeIgnored(clazz.name)) continue
+                
+                // Test if this class would match the current filter
+                if (wouldMatchFilter(clazz, config)) {
+                    candidates.add(clazz)
+                    if (CodePathTracer.DEBUG) {
+                        println("[MethodTrace] Candidate found: ${clazz.name} (reason: filter match)")
+                    }
+                }
+                
+                // Look for inner classes that might be interesting
+                if (hasInnerClassesOfInterest(clazz, config)) {
+                    candidates.add(clazz)
+                    if (CodePathTracer.DEBUG) {
+                        println("[MethodTrace] Candidate found: ${clazz.name} (reason: inner classes)")
+                    }
+                }
+                
+            } catch (_: Exception) {
+                // Skip problematic classes silently
+            }
+        }
+        
+        return candidates.distinct()
+    }
+    
+    private fun wouldBeIgnored(className: String): Boolean {
+        return className.startsWith("net.bytebuddy.") ||
+               className.startsWith("java.") ||
+               className.startsWith("kotlin.") ||
+               className.startsWith("org.junit.") ||
+               className.startsWith("sun.") ||
+               className.startsWith("com.sun.") ||
+               className.startsWith("android.util.DebugUtils") ||
+               className.startsWith("io.github.takahirom.codepathtracer.") ||
+               className.contains("\$\$Lambda\$") ||
+               className.contains("\$lambda\$") ||
+               className.contains("JvmMethodTraceTest\$methodTraceRule\$")
+    }
+    
+    private fun wouldMatchFilter(clazz: Class<*>, config: CodePathTracer.Config): Boolean {
+        try {
+            // Create a dummy trace event to test the filter
+            val dummyEvent = TraceEvent.Enter(
+                className = clazz.name,
+                methodName = "testMethod",
+                args = emptyArray(),
+                depth = 0
+            )
+            return config.filter(dummyEvent)
+        } catch (_: Exception) {
+            return false
+        }
+    }
+    
+    private fun hasInnerClassesOfInterest(clazz: Class<*>, @Suppress("UNUSED_PARAMETER") config: CodePathTracer.Config): Boolean {
+        // Look for inner classes ($) that might be of interest
+        return clazz.name.contains("$") && 
+               !clazz.name.contains("Lambda") &&
+               !clazz.name.contains("lambda") &&
+               !clazz.name.contains("methodTraceRule")
+    }
     
     /**
      * Reset configuration to disable tracing

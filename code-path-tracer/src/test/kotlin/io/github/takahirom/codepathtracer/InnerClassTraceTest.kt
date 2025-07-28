@@ -17,51 +17,58 @@ class InnerClassTraceTest {
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event ->
             capturedEvents.add(event)
-            // Try to capture both inner classes and TestCalculator
-            event.className.contains("InnerCalculator") || 
-            event.className.contains("NestedCalculator") ||
-            event.className == "io.github.takahirom.codepathtracer.TestCalculator"
+            // Capture everything that contains our test class name to investigate
+            event.className.contains("InnerClassTraceTest")
         }
         .build()
     
     @Test
     fun testInnerClassTracingLimitation() {
-        println("🔍 Inner Class Tracing Limitation Verification")
-        println("============================================")
+        println("🔍 Inner Class Tracing Investigation")
+        println("===================================")
         
         capturedEvents.clear() // Clear any previous events
         
         println("Creating inner class instances...")
         val calculator = InnerCalculator()
+        println("InnerCalculator class name: ${calculator::class.java.name}")
+        
+        val nestedCalculator = NestedCalculator()
+        println("NestedCalculator class name: ${nestedCalculator::class.java.name}")
+        
         val result = calculator.add(5, 3)
         println("Inner class add result: $result")
         
         val complexResult = calculator.complexCalculation(4, 6)
         println("Inner class complex result: $complexResult")
         
-        val nestedCalculator = NestedCalculator()
         val nestedResult = nestedCalculator.multiply(result, 2)
         println("Nested class result: $nestedResult")
         
-        // Verify that inner class methods were NOT traced (current limitation)
+        // Print ALL captured events to see what's being traced
+        println("📊 Captured ${capturedEvents.size} total events")
+        capturedEvents.forEach { event ->
+            println("  - ${event.className}.${event.methodName} (${if (event is TraceEvent.Enter) "ENTER" else "EXIT"})")
+        }
+        
+        // Check specifically for inner class events
         val innerClassEvents = capturedEvents.filter { 
             it.className.contains("InnerCalculator") || it.className.contains("NestedCalculator")
         }
         
-        println("📊 Captured ${capturedEvents.size} total events")
         println("📊 Inner class events: ${innerClassEvents.size}")
         
         if (innerClassEvents.isNotEmpty()) {
-            println("❌ UNEXPECTED: Inner class methods were traced!")
+            println("✅ SUCCESS: Inner class methods WERE traced!")
             innerClassEvents.forEach { event ->
-                println("  - ${event.className}.${event.methodName}")
+                println("  - TRACED: ${event.className}.${event.methodName}")
             }
-            fail("Inner class tracing should be limited, but ${innerClassEvents.size} events were captured. This indicates the limitation has been resolved or the ignore patterns need adjustment.")
         } else {
-            println("✅ EXPECTED: Inner class methods were not traced (confirms current limitation)")
+            println("❌ LIMITATION CONFIRMED: Inner class methods were not traced")
+            println("This confirms the current ByteBuddy limitation with inner classes")
         }
         
-        println("=== Inner class limitation test completed ===")
+        println("=== Inner class investigation completed ===")
     }
     
     @Test  

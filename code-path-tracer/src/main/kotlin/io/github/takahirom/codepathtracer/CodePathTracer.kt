@@ -25,7 +25,8 @@ class CodePathTracer(private val config: Config) {
     data class Config(
         val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
         val formatter: (TraceEvent) -> String = DefaultFormatter::format,
-        val enabled: Boolean = true
+        val enabled: Boolean = true,
+        val autoRetransform: Boolean = true
     )
     
     /**

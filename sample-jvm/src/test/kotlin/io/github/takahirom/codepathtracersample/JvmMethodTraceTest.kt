@@ -13,8 +13,11 @@ class JvmMethodTraceTest {
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event -> 
-            // Trace everything with sample in name
-            event.className.contains("Sample") || event.className.contains("sample")
+            // Trace everything with sample in name, including inner class style names
+            event.className.contains("Sample") || 
+            event.className.contains("sample") ||
+            event.className.contains("InnerClassStyle") ||
+            event.className.contains("TestClass$")
         }
         .formatter { event -> 
             when (event) {
@@ -62,6 +65,24 @@ class JvmMethodTraceTest {
         assert(processed.all { it.startsWith("PROCESSED:") })
         
         println("=== Data processing test completed ===")
+    }
+    
+    @Test
+    fun testInnerClassStyleTracing() {
+        println("=== Testing Inner Class Style Tracing ===")
+        
+        val calculator = InnerClassStyleCalculator()
+        val result = calculator.add(5, 3)
+        println("InnerClassStyleCalculator result: $result")
+        
+        val complexResult = calculator.complexCalculation(4, 6)
+        println("InnerClassStyleCalculator complex result: $complexResult")
+        
+        val dollarCalculator = TestClassInnerStyle()
+        val multiplyResult = dollarCalculator.multiply(result, 2)
+        println("TestClassInnerStyle result: $multiplyResult")
+        
+        println("=== Inner class style test completed ===")
     }
     
     @Test

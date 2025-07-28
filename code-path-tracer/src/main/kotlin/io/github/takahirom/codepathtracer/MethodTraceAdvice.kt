@@ -6,10 +6,14 @@ package io.github.takahirom.codepathtracer
 class MethodTraceAdvice {
     companion object {
         private val depthCounter = ThreadLocal.withInitial { 0 }
+        private val isTracing = ThreadLocal.withInitial { false }
         
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
         fun methodEnter(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.AllArguments args: Array<Any?>) {
+            // Prevent infinite recursion
+            if (isTracing.get()) return
+            
             val config = CodePathTracerAgent.getConfig() ?: return
             
             val depth = depthCounter.get() ?: 0
@@ -33,21 +37,30 @@ class MethodTraceAdvice {
                 depth = depth
             )
             
-            // Apply filter
-            if (!config.filter(traceEvent)) {
-                depthCounter.set(depth + 1)  // Update depth but don't log
-                return
+            try {
+                isTracing.set(true)
+                
+                // Apply filter
+                if (!config.filter(traceEvent)) {
+                    depthCounter.set(depth + 1)  // Update depth but don't log
+                    return
+                }
+                
+                // Format and print (formatter handles enter/exit formatting)
+                val formattedOutput = config.formatter(traceEvent)
+                println(formattedOutput)
+                depthCounter.set(depth + 1)
+            } finally {
+                isTracing.set(false)
             }
-            
-            // Format and print (formatter handles enter/exit formatting)
-            val formattedOutput = config.formatter(traceEvent)
-            println(formattedOutput)
-            depthCounter.set(depth + 1)
         }
         
         @JvmStatic  
         @net.bytebuddy.asm.Advice.OnMethodExit
         fun methodExit(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.Return(typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) returnValue: Any?) {
+            // Prevent infinite recursion
+            if (isTracing.get()) return
+            
             val config = CodePathTracerAgent.getConfig() ?: return
             
             val depth = (depthCounter.get() ?: 1) - 1
@@ -71,14 +84,20 @@ class MethodTraceAdvice {
                 depth = depth
             )
             
-            // Apply filter
-            if (!config.filter(traceEvent)) {
-                return
+            try {
+                isTracing.set(true)
+                
+                // Apply filter
+                if (!config.filter(traceEvent)) {
+                    return
+                }
+                
+                // Format and print (formatter handles enter/exit formatting)
+                val formattedOutput = config.formatter(traceEvent)
+                println(formattedOutput)
+            } finally {
+                isTracing.set(false)
             }
-            
-            // Format and print (formatter handles enter/exit formatting)
-            val formattedOutput = config.formatter(traceEvent)
-            println(formattedOutput)
         }
     }
 }
