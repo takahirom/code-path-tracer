@@ -19,7 +19,7 @@ import java.util.jar.JarFile
  * ByteBuddy automatic transformation agent (configurable version)
  */
 object MethodTraceAgent {
-    private const val DEBUG = true
+    private const val DEBUG = false
     private var config: MethodTraceRule.Config? = null
     private var isInitialized = false
 
