@@ -22,11 +22,13 @@ package io.github.takahirom.codepathtracer
  */
 class CodePathTracer(private val config: Config) {
     
+    
     data class Config(
         val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
         val formatter: (TraceEvent) -> String = DefaultFormatter::format,
         val enabled: Boolean = true,
-        val autoRetransform: Boolean = true
+        val autoRetransform: Boolean = true,
+        val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) }
     )
     
     /**
@@ -53,6 +55,48 @@ class CodePathTracer(private val config: Config) {
          * Global debug flag for all tracing components
          */
         var DEBUG = false
+        
+        /**
+         * Default implementation to convert AdviceData to TraceEvent
+         */
+        fun defaultTraceEventGenerator(advice: AdviceData): TraceEvent? {
+            return when (advice) {
+                is AdviceData.Enter -> {
+                    val methodInfo = parseMethodInfo(advice.method)
+                    TraceEvent.Enter(
+                        className = methodInfo.className,
+                        methodName = methodInfo.methodName,
+                        args = advice.args,
+                        depth = advice.depth
+                    )
+                }
+                is AdviceData.Exit -> {
+                    val methodInfo = parseMethodInfo(advice.method)
+                    TraceEvent.Exit(
+                        className = methodInfo.className,
+                        methodName = methodInfo.methodName,
+                        returnValue = advice.returnValue,
+                        depth = advice.depth
+                    )
+                }
+            }
+        }
+        
+        private data class MethodInfo(val className: String, val methodName: String)
+        
+        private fun parseMethodInfo(method: String): MethodInfo {
+            val parenIndex = method.indexOf('(')
+            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
+            
+            val spaceIndex = methodPart.lastIndexOf(' ')
+            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
+            
+            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
+            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
+            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
+            
+            return MethodInfo(className, methodName)
+        }
         
         /**
          * Create a builder for configuration

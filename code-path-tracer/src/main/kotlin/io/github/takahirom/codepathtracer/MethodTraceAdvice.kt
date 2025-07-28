@@ -18,24 +18,13 @@ class MethodTraceAdvice {
             
             val depth = depthCounter.get() ?: 0
             
-            val parenIndex = method.indexOf('(')
-            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
-            
-            val spaceIndex = methodPart.lastIndexOf(' ')
-            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
-            
-            
-            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
-            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
-            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
-            
-            // Create TraceEvent.Enter for filtering
-            val traceEvent = TraceEvent.Enter(
-                className = className,
-                methodName = methodName,
+            // Create AdviceData and convert to TraceEvent using traceEventGenerator
+            val adviceData = AdviceData.Enter(
+                method = method,
                 args = args,
                 depth = depth
             )
+            val traceEvent = config.traceEventGenerator(adviceData) ?: return
             
             try {
                 isTracing.set(true)
@@ -66,23 +55,13 @@ class MethodTraceAdvice {
             val depth = (depthCounter.get() ?: 1) - 1
             depthCounter.set(depth)
             
-            val parenIndex = method.indexOf('(')
-            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
-            
-            val spaceIndex = methodPart.lastIndexOf(' ')
-            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
-            
-            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
-            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
-            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
-            
-            // Create TraceEvent.Exit for filtering (exit event with return value)
-            val traceEvent = TraceEvent.Exit(
-                className = className,
-                methodName = methodName,
+            // Create AdviceData and convert to TraceEvent using traceEventGenerator
+            val adviceData = AdviceData.Exit(
+                method = method,
                 returnValue = returnValue,
                 depth = depth
             )
+            val traceEvent = config.traceEventGenerator(adviceData) ?: return
             
             try {
                 isTracing.set(true)

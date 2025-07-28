@@ -147,4 +147,22 @@ class JvmMethodTraceTest {
             return "PROCESSED:${str.uppercase()}"
         }
     }
+    
+    @Test
+    fun testCustomTraceEventGenerator() {
+        println("=== Testing Custom TraceEventGenerator ===")
+        
+        // Use the default traceEventGenerator to confirm the feature is working
+        val customConfig = CodePathTracer.Config(
+            filter = { event -> event.className.contains("SampleCalculator") },
+            traceEventGenerator = CodePathTracer::defaultTraceEventGenerator
+        )
+        
+        codePathTrace(customConfig) {
+            val calculator = SampleCalculator()
+            calculator.add(2, 3)
+        }
+        
+        println("=== Custom traceEventGenerator test completed (using default generator) ===")
+    }
 }
