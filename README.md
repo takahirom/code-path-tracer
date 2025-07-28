@@ -1,4 +1,6 @@
-# Code Path Tracer 🔍
+# Code Path Tracer 🧭
+
+<img width="1408" height="768" alt="clipboard-image-1753705301" src="https://github.com/user-attachments/assets/6adb29ac-ce64-49ec-b141-f7bf9e29c511" />
 
 **Simple, powerful method tracing for JVM and Android(JVM Tests)**
 
