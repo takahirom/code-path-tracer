@@ -165,4 +165,22 @@ class JvmMethodTraceTest {
         
         println("=== Custom traceEventGenerator test completed (using default generator) ===")
     }
+    
+    @Test
+    fun testMaxToStringLengthConfig() {
+        println("=== Testing maxToStringLength Configuration ===")
+        
+        // Test with very short maxToStringLength
+        val shortConfig = CodePathTracer.Config(
+            filter = { event -> event.className.contains("SampleCalculator") },
+            maxToStringLength = 5
+        )
+        
+        codePathTrace(shortConfig) {
+            val calculator = SampleCalculator()
+            calculator.add(123456789, 987654321) // Long numbers should be truncated
+        }
+        
+        println("=== maxToStringLength test completed ===")
+    }
 }

@@ -19,7 +19,7 @@ sealed class TraceEvent {
         // ThreadLocal guard to prevent infinite recursion during toString() calls
         private val isToStringCalling = ThreadLocal.withInitial { false }
         
-        internal fun safeToString(obj: Any?): String {
+        internal fun safeToString(obj: Any?, maxLength: Int = 30): String {
             if (isToStringCalling.get()) {
                 return "recursion"
             }
@@ -28,10 +28,10 @@ sealed class TraceEvent {
                 when {
                     obj == null -> "null"
                     obj is Unit -> "Unit"
-                    else -> obj.toString().take(10)
+                    else -> obj.toString().take(maxLength)
                 }
             } catch (e: Exception) {
-                "error " + e.message.orEmpty().take(10)
+                "error " + e.message.orEmpty().take(maxLength)
             } finally {
                 isToStringCalling.set(false)
             }
@@ -80,7 +80,7 @@ sealed class TraceEvent {
     /**
      * Default formatting for trace events.
      */
-    fun defaultFormat(): String {
+    fun defaultFormat(maxLength: Int = 30): String {
         val indent = when (depth) {
             0 -> ""
             1 -> "  "
@@ -99,7 +99,7 @@ sealed class TraceEvent {
             is Enter -> {
                 val argsStr = if (args.isNotEmpty()) {
                     args.joinToString(", ") { arg ->
-                        safeToString(arg)
+                        safeToString(arg, maxLength)
                     }
                 } else {
                     ""
@@ -111,7 +111,7 @@ sealed class TraceEvent {
                 val returnPart = if (returnValue == null || returnValue is Unit) {
                     "" // Hide null/Unit returns (constructors and void methods)
                 } else {
-                    val returnStr = safeToString(returnValue)
+                    val returnStr = safeToString(returnValue, maxLength)
                     if (returnStr.isNotEmpty()) " = $returnStr" else ""
                 }
                 "$indent← $fullMethodName$returnPart"
@@ -125,7 +125,10 @@ object DefaultFilter {
 }
 
 object DefaultFormatter {
-    fun format(event: TraceEvent): String = event.defaultFormat()
+    var defaultMaxLength = 30
+    
+    fun format(event: TraceEvent): String = event.defaultFormat(defaultMaxLength)
+    fun format(event: TraceEvent, maxLength: Int): String = event.defaultFormat(maxLength)
 }
 
 /**
@@ -162,15 +165,16 @@ class CodePathTracerRule private constructor(
 
     class Builder {
         private var filter: (TraceEvent) -> Boolean = { true }
-        private var formatter: (TraceEvent) -> String = TraceEvent::defaultFormat
+        private var formatter: (TraceEvent) -> String = { event -> event.defaultFormat() }
         private var enabled = true
+        private var maxToStringLength = 30
 
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
+        fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
 
-
-        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled))
+        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled, autoRetransform = true, traceEventGenerator = { advice -> CodePathTracer.defaultTraceEventGenerator(advice) }, maxToStringLength))
     }
 
     override fun apply(base: Statement, description: Description): Statement {

@@ -29,11 +29,13 @@ object CodePathTracerAgent {
         if (isInitialized) {
             // Already initialized, just update config
             this.config = config
+            DefaultFormatter.defaultMaxLength = config.maxToStringLength
             if (CodePathTracer.DEBUG) println("[MethodTrace] Agent already initialized, updating config only")
             return
         }
 
         this.config = config
+        DefaultFormatter.defaultMaxLength = config.maxToStringLength
         if (CodePathTracer.DEBUG) println("[MethodTrace] Starting agent initialization with config: $config")
 
         // Enable ByteBuddy experimental features
