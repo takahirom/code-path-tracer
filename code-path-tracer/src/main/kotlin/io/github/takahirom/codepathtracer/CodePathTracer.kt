@@ -63,40 +63,40 @@ class CodePathTracer(private val config: Config) {
         fun defaultTraceEventGenerator(advice: AdviceData): TraceEvent? {
             return when (advice) {
                 is AdviceData.Enter -> {
-                    val methodInfo = parseMethodInfo(advice.method)
+                    // Parse method string directly without intermediate objects
+                    val parenIndex = advice.method.indexOf('(')
+                    val methodPart = if (parenIndex >= 0) advice.method.substring(0, parenIndex) else advice.method
+                    val spaceIndex = methodPart.lastIndexOf(' ')
+                    val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
+                    val lastDotIndex = cleanMethodPart.lastIndexOf('.')
+                    val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
+                    val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
+                    
                     TraceEvent.Enter(
-                        className = methodInfo.className,
-                        methodName = methodInfo.methodName,
+                        className = className,
+                        methodName = methodName,
                         args = advice.args,
                         depth = advice.depth
                     )
                 }
                 is AdviceData.Exit -> {
-                    val methodInfo = parseMethodInfo(advice.method)
+                    // Parse method string directly without intermediate objects
+                    val parenIndex = advice.method.indexOf('(')
+                    val methodPart = if (parenIndex >= 0) advice.method.substring(0, parenIndex) else advice.method
+                    val spaceIndex = methodPart.lastIndexOf(' ')
+                    val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
+                    val lastDotIndex = cleanMethodPart.lastIndexOf('.')
+                    val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
+                    val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
+                    
                     TraceEvent.Exit(
-                        className = methodInfo.className,
-                        methodName = methodInfo.methodName,
+                        className = className,
+                        methodName = methodName,
                         returnValue = advice.returnValue,
                         depth = advice.depth
                     )
                 }
             }
-        }
-        
-        private data class MethodInfo(val className: String, val methodName: String)
-        
-        private fun parseMethodInfo(method: String): MethodInfo {
-            val parenIndex = method.indexOf('(')
-            val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
-            
-            val spaceIndex = methodPart.lastIndexOf(' ')
-            val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
-            
-            val lastDotIndex = cleanMethodPart.lastIndexOf('.')
-            val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
-            val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
-            
-            return MethodInfo(className, methodName)
         }
         
         /**
