@@ -1,6 +1,6 @@
 # Code Path Tracer 🔍
 
-**Simple, powerful method tracing for JVM and Android**
+**Simple, powerful method tracing for JVM and Android(JVM Tests)**
 
 See exactly what your code is doing with clean, visual method traces. Perfect for debugging, understanding complex codebases, and visualizing execution flow.
 
@@ -90,13 +90,9 @@ codePathTrace(
 
 ## ✨ Features
 
-- 🎯 **Zero-config tracing** - Works out of the box with JUnit
-- 🎨 **Beautiful output** - Visual arrows show method entry/exit with depth indentation
+- 🎯 **Zero-config tracing** - Add implementation and call one method
+- 🎨 **Beautiful visual output** - Clean arrows show method entry/exit with depth indentation  
 - 🔧 **Flexible filtering** - Trace only what you care about
-- 📱 **Android support** - Works with Robolectric tests
-- 🏗️ **Constructor tracing** - See object creation with arguments
-- 🔄 **Inner class support** - Automatic retransformation for inner classes
-- ⚡ **Lightweight** - Minimal overhead, maximum insight
 
 ## 🎛️ Advanced Configuration
 
@@ -115,51 +111,6 @@ codePathTrace(
 .filter { event -> event.depth < 3 }
 ```
 
-### Constructor Tracing
-
-See object creation in action:
-
-```kotlin
-class Calculator(private val name: String = "DefaultCalculator") {
-    init {
-        println("Initializing $name")
-    }
-}
-
-val calc = Calculator("MyCalculator")  // ← Traced automatically!
-```
-
-**Output:**
-```
-➤ Calculator(1)
-  Initializing MyCalculator
-⬅ Calculator
-```
-
-### Inner Class Support
-
-Inner classes are automatically detected and traced:
-
-```kotlin
-class OuterClass {
-    inner class InnerCalculator {
-        fun add(a: Int, b: Int) = a + b
-    }
-}
-
-val calc = OuterClass().InnerCalculator()
-calc.add(5, 3)  // ← Inner class methods traced!
-```
-
-**Configuration Options:**
-
-```kotlin
-val config = CodePathTracer.Config(
-    autoRetransform = true,  // Enable inner class tracing (default: true)
-    filter = { event -> event.className.contains("MyClass") },
-    formatter = TraceEvent::defaultFormat
-)
-```
 
 ## 🏃‍♂️ Quick Verification
 
