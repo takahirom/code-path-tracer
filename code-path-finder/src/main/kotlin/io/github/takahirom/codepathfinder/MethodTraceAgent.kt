@@ -5,14 +5,12 @@ import net.bytebuddy.description.NamedElement
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.dynamic.ClassFileLocator
 import net.bytebuddy.dynamic.loading.ClassInjector
-import net.bytebuddy.implementation.bind.annotation.SuperCall
+import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.utility.JavaModule
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
-import java.util.concurrent.Callable
-import java.util.jar.JarFile
 
 
 /**
@@ -68,50 +66,11 @@ object MethodTraceAgent {
 
 
     @Suppress("NewApi")
-    private fun createAgentBuilder(config: MethodTraceRule.Config, instrumentation: Instrumentation): net.bytebuddy.agent.builder.AgentBuilder {
+    private fun createAgentBuilder(config: MethodTraceRule.Config, instrumentation: Instrumentation): AgentBuilder {
         if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("tmp").toFile()
         fallbackToIndividualInjection(temp, instrumentation)
       return createAgentBuilderInstance(config)
-    }
-
-    private fun <T:Any>addClass(
-      clazz: Class<T>,
-        instrumentation: Instrumentation,
-        temp: File
-    ) {
-        try{
-            val classLoader = clazz.classLoader
-            if (classLoader == null) {
-                if (DEBUG) println("[MethodTrace] Processing Bootstrap ClassLoader class: ${clazz.name}")
-                val codeSource = clazz.protectionDomain?.codeSource
-                if (codeSource != null) {
-                    try {
-                        val jarFile = File(codeSource.location.toURI())
-                        if (jarFile.exists() && jarFile.name.endsWith(".jar")) {
-                            instrumentation.appendToBootstrapClassLoaderSearch(JarFile(jarFile))
-                            if (DEBUG) println("[MethodTrace] Added Bootstrap JAR: ${jarFile.absolutePath}")
-                        }
-                    } catch (e: Exception) {
-                        if (DEBUG) println("[MethodTrace] Failed to add Bootstrap JAR for ${clazz.name}: ${e.message}")
-                    }
-                }
-            } else {
-                if (DEBUG) println("[MethodTrace] Processing Application ClassLoader class: ${clazz.name}")
-                val codeSource = clazz.protectionDomain?.codeSource
-                if (codeSource != null) {
-                    val jarFile = File(codeSource.location.toURI())
-                    if (DEBUG) println("[MethodTrace] Adding JAR to bootstrap classpath: ${jarFile.absolutePath}")
-
-                    instrumentation.appendToBootstrapClassLoaderSearch(JarFile(jarFile))
-                    if (DEBUG) println("[MethodTrace] JAR successfully added to bootstrap classpath")
-                }
-            }
-        } catch (e: Exception) {
-            if (DEBUG) {
-                println("[MethodTrace] Failed to add JAR for class ${clazz.name}: ${e.message}")
-            }
-        }
     }
 
     private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
@@ -135,12 +94,12 @@ object MethodTraceAgent {
             addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFilter"))
             addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFormatter"))
         } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Default filter/formatter classes not found")
+            if (DEBUG) println("[MethodTrace] Default filter/formatter classes not found " + e.stackTraceToString())
         }
         try {
             addClassAndDependencies(Class.forName("kotlin.jvm.internal.Intrinsics"))
         } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Kotlin intrinsics not found")
+            if (DEBUG) println("[MethodTrace] Kotlin intrinsics not found " + e.stackTraceToString())
         }
 
         ClassInjector.UsingInstrumentation
@@ -148,28 +107,28 @@ object MethodTraceAgent {
             .inject(classesToInject)
     }
 
-    private fun createAgentBuilderInstance(config: MethodTraceRule.Config): net.bytebuddy.agent.builder.AgentBuilder {
-        return net.bytebuddy.agent.builder.AgentBuilder.Default()
-            .with(object : net.bytebuddy.agent.builder.AgentBuilder.Listener {
+    private fun createAgentBuilderInstance(config: MethodTraceRule.Config): AgentBuilder {
+        return AgentBuilder.Default()
+            .with(object : AgentBuilder.Listener {
                 override fun onDiscovery(
                     typeName: String,
                     classLoader: ClassLoader?,
                     module: JavaModule?,
                     loaded: Boolean
                 ) {
-                    if (DEBUG && typeName.contains("Sample")) println("[MethodTrace] Discovery: $typeName")
+                    if (DEBUG) println("[MethodTrace] Discovery: $typeName")
                 }
-                override fun onTransformation(typeDescription: net.bytebuddy.description.type.TypeDescription, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean, dynamicType: net.bytebuddy.dynamic.DynamicType) {
+                override fun onTransformation(typeDescription: TypeDescription, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean, dynamicType: net.bytebuddy.dynamic.DynamicType) {
                     if (DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
                 }
-                override fun onIgnored(typeDescription: net.bytebuddy.description.type.TypeDescription, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean) {
-                    if (DEBUG && typeDescription.name.contains("Sample")) println("[MethodTrace] Ignored: ${typeDescription.name}")
+                override fun onIgnored(typeDescription: TypeDescription, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean) {
+                    if (DEBUG) println("[MethodTrace] Ignored: ${typeDescription.name}")
                 }
-                override fun onError(typeName: String, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean, throwable: Throwable) {
+                override fun onError(typeName: String, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean, throwable: Throwable) {
                     if (DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
                 }
-                override fun onComplete(typeName: String, classLoader: ClassLoader?, module: net.bytebuddy.utility.JavaModule?, loaded: Boolean) {
-                    if (DEBUG && typeName.contains("Sample")) println("[MethodTrace] Complete: $typeName")
+                override fun onComplete(typeName: String, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean) {
+                    if (DEBUG) println("[MethodTrace] Complete: $typeName")
                 }
             })
             .disableClassFormatChanges()
@@ -183,11 +142,11 @@ object MethodTraceAgent {
             )
             .type(createTypeMatcher(config))
             .transform(
-                net.bytebuddy.agent.builder.AgentBuilder.Transformer.ForAdvice()
+                AgentBuilder.Transformer.ForAdvice()
                     .advice(
                         ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                            .and(ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isConstructor()))
-                            .and(ElementMatchers.not(net.bytebuddy.matcher.ElementMatchers.isTypeInitializer())),
+                            .and(ElementMatchers.not(ElementMatchers.isConstructor()))
+                            .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
                         MethodTraceAdvice::class.java.name
                     )
             )
@@ -195,9 +154,9 @@ object MethodTraceAgent {
 
     fun getConfig(): MethodTraceRule.Config? = config
 
-    private fun createTypeMatcher(config: MethodTraceRule.Config): net.bytebuddy.matcher.ElementMatcher<in net.bytebuddy.description.type.TypeDescription> {
-        return object : net.bytebuddy.matcher.ElementMatcher<net.bytebuddy.description.type.TypeDescription> {
-            override fun matches(target: net.bytebuddy.description.type.TypeDescription): Boolean {
+    private fun createTypeMatcher(config: MethodTraceRule.Config): ElementMatcher<in TypeDescription> {
+        return object : ElementMatcher<TypeDescription> {
+            override fun matches(target: TypeDescription): Boolean {
                 if (DEBUG) println("[MethodTrace] Matching type: ${target.name}")
                 return true
             }
