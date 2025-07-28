@@ -4,15 +4,15 @@
 
 See exactly what your code is doing with clean, visual method traces. Perfect for debugging, understanding complex codebases, and visualizing execution flow.
 
-## ✨ Features
+## 💡 Motivation
 
-- 🎯 **Zero-config tracing** - Works out of the box with JUnit
-- 🎨 **Beautiful output** - Visual arrows show method entry/exit with depth indentation
-- 🔧 **Flexible filtering** - Trace only what you care about
-- 📱 **Android support** - Works with Robolectric tests
-- 🏗️ **Constructor tracing** - See object creation with arguments
-- 🔄 **Inner class support** - Automatic retransformation for inner classes
-- ⚡ **Lightweight** - Minimal overhead, maximum insight
+Traditional debugging tools can be challenging for AI developers and complex scenarios:
+- **AI limitations with debuggers** - AI assistants struggle to use breakpoints and step-through debugging effectively
+- **Coverage tools miss the why** - Code coverage shows *what* was executed but not *how* the execution flowed
+- **Android touch debugging complexity** - Understanding which View returned `true` in touch event handling is notoriously difficult
+- **Complex call stacks** - Deep method chains and callbacks make it hard to follow execution flow
+
+Code Path Tracer solves these problems by providing **visual execution traces** that show exactly how your code flows, making debugging accessible to both humans and AI tools.
 
 ## 🚀 Quick Start
 
@@ -38,7 +38,7 @@ codePathTrace {
 ← Calculator.complexCalculation = 28
 ```
 
-Want custom formatting? Use JUnit Rules:
+Want custom formatting? Configure it easily:
 
 ```kotlin
 @get:Rule
@@ -69,6 +69,34 @@ fun testCalculator() {
 ⬅ SampleCalculator.add = 28
 ⬅ SampleCalculator.complexCalculation = 28
 ```
+
+Or customize directly with `codePathTrace()`:
+
+```kotlin
+codePathTrace(
+    CodePathTracer.Config(
+        filter = { event -> event.className.contains("Calculator") },
+        formatter = { event -> 
+            when (event) {
+                is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
+                is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
+            }
+        }
+    )
+) {
+    calculator.complexCalculation(5, 3)
+}
+```
+
+## ✨ Features
+
+- 🎯 **Zero-config tracing** - Works out of the box with JUnit
+- 🎨 **Beautiful output** - Visual arrows show method entry/exit with depth indentation
+- 🔧 **Flexible filtering** - Trace only what you care about
+- 📱 **Android support** - Works with Robolectric tests
+- 🏗️ **Constructor tracing** - See object creation with arguments
+- 🔄 **Inner class support** - Automatic retransformation for inner classes
+- ⚡ **Lightweight** - Minimal overhead, maximum insight
 
 ## 🎛️ Advanced Configuration
 
