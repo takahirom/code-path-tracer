@@ -15,12 +15,9 @@ class MethodTraceAdvice {
             
             val depth = depthCounter.get() ?: 0
             
-            // Parse method signature to extract class and method name
-            // Avoid Kotlin string operations that might cause recursion
             val parenIndex = method.indexOf('(')
             val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
             
-            // Simple parsing without complex string operations
             val spaceIndex = methodPart.lastIndexOf(' ')
             val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
             
@@ -57,12 +54,9 @@ class MethodTraceAdvice {
             val depth = (depthCounter.get() ?: 1) - 1
             depthCounter.set(depth)
             
-            // Parse method signature to extract class and method name
-            // Avoid Kotlin string operations that might cause recursion
             val parenIndex = method.indexOf('(')
             val methodPart = if (parenIndex >= 0) method.substring(0, parenIndex) else method
             
-            // Simple parsing without complex string operations
             val spaceIndex = methodPart.lastIndexOf(' ')
             val cleanMethodPart = if (spaceIndex >= 0) methodPart.substring(spaceIndex + 1) else methodPart
             

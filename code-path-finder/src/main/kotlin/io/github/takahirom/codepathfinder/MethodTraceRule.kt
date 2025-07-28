@@ -134,7 +134,6 @@ class MethodTraceRule private constructor(
                 try {
                     base.evaluate()
                 } finally {
-                    // cleanup if needed
                 }
             }
         }
