@@ -7,15 +7,52 @@ import org.junit.runners.model.Statement
 /**
  * Represents a method trace event with all relevant context information.
  */
-data class TraceEvent(
-    val className: String,
-    val methodName: String,
-    val args: Array<Any?>,
-    val returnValue: Any? = null,
-    val depth: Int = 0,
-) {
-    val shortClassName: String = className.substringAfterLast('.')
-    val fullMethodName: String = "$shortClassName.$methodName"
+sealed class TraceEvent {
+    abstract val className: String
+    abstract val methodName: String
+    abstract val depth: Int
+    
+    val shortClassName: String get() = className.substringAfterLast('.')
+    val fullMethodName: String get() = "$shortClassName.$methodName"
+    
+    /**
+     * Method entry event
+     */
+    data class Enter(
+        override val className: String,
+        override val methodName: String,
+        val args: Array<Any?>,
+        override val depth: Int = 0,
+    ) : TraceEvent() {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as Enter
+            if (className != other.className) return false
+            if (methodName != other.methodName) return false
+            if (!args.contentEquals(other.args)) return false
+            if (depth != other.depth) return false
+            return true
+        }
+        
+        override fun hashCode(): Int {
+            var result = className.hashCode()
+            result = 31 * result + methodName.hashCode()
+            result = 31 * result + args.contentHashCode()
+            result = 31 * result + depth
+            return result
+        }
+    }
+    
+    /**
+     * Method exit event
+     */
+    data class Exit(
+        override val className: String,
+        override val methodName: String,
+        val returnValue: Any? = null,
+        override val depth: Int = 0,
+    ) : TraceEvent()
     
     /**
      * Default formatting for trace events.
@@ -35,10 +72,11 @@ data class TraceEvent(
             10 -> "          "
             else -> "           " // max 10+ levels
         }
-        return "$indent→ $fullMethodName(${args.size})"
+        return when (this) {
+            is Enter -> "$indent→ $fullMethodName(${args.size})"
+            is Exit -> "$indent← $fullMethodName"
+        }
     }
-    
-        
 }
 
 object DefaultFilter {

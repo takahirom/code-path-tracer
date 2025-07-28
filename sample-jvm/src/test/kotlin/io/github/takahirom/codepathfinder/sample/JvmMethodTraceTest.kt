@@ -1,6 +1,7 @@
 package io.github.takahirom.codepathtracer.sample
 
 import io.github.takahirom.codepathtracer.CodePathTracerRule
+import io.github.takahirom.codepathtracer.TraceEvent
 import org.junit.Rule
 import org.junit.Test
 
@@ -9,7 +10,12 @@ class JvmMethodTraceTest {
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event -> event.className.startsWith("io.github.takahirom.codepathtracer.sample") }
-        .formatter { event -> "${event.className}.${event.methodName}(${event.args.size})" }
+        .formatter { event -> 
+            when (event) {
+                is TraceEvent.Enter -> "➤ ${event.className}.${event.methodName}(${event.args.size})"
+                is TraceEvent.Exit -> "⬅ ${event.className}.${event.methodName} = ${event.returnValue}"
+            }
+        }
         .build()
     
     @Test

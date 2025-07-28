@@ -26,8 +26,8 @@ class MethodTraceAdvice {
             val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
             val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
             
-            // Create TraceEvent for filtering
-            val traceEvent = TraceEvent(
+            // Create TraceEvent.Enter for filtering
+            val traceEvent = TraceEvent.Enter(
                 className = className,
                 methodName = methodName,
                 args = args,
@@ -40,9 +40,9 @@ class MethodTraceAdvice {
                 return
             }
             
-            // Format and print
+            // Format and print (formatter handles enter/exit formatting)
             val formattedOutput = config.formatter(traceEvent)
-            println("$formattedOutput")
+            println(formattedOutput)
             depthCounter.set(depth + 1)
         }
         
@@ -65,11 +65,10 @@ class MethodTraceAdvice {
             val className = if (lastDotIndex >= 0) cleanMethodPart.substring(0, lastDotIndex) else "Unknown"
             val methodName = if (lastDotIndex >= 0) cleanMethodPart.substring(lastDotIndex + 1) else cleanMethodPart
             
-            // Create TraceEvent for filtering (exit event with return value)
-            val traceEvent = TraceEvent(
+            // Create TraceEvent.Exit for filtering (exit event with return value)
+            val traceEvent = TraceEvent.Exit(
                 className = className,
                 methodName = methodName,
-                args = emptyArray(), // Args not available at exit
                 returnValue = returnValue,
                 depth = depth
             )
@@ -79,9 +78,9 @@ class MethodTraceAdvice {
                 return
             }
             
-            // Format and print (could be different formatter for exit events)
+            // Format and print (formatter handles enter/exit formatting)
             val formattedOutput = config.formatter(traceEvent)
-            println("← $formattedOutput")
+            println(formattedOutput)
         }
     }
 }
