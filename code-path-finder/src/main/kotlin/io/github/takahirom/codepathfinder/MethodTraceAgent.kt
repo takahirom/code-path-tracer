@@ -23,7 +23,6 @@ object MethodTraceAgent {
     private var config: MethodTraceRule.Config? = null
     private var isInitialized = false
 
-    // Remove static initialization to avoid early class loading issues
 
     fun initialize(config: MethodTraceRule.Config) {
         if (DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
@@ -72,7 +71,6 @@ object MethodTraceAgent {
     private fun createAgentBuilder(config: MethodTraceRule.Config, instrumentation: Instrumentation): net.bytebuddy.agent.builder.AgentBuilder {
         if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("tmp").toFile()
-        // Use individual class injection instead of JAR injection
         fallbackToIndividualInjection(temp, instrumentation)
       return createAgentBuilderInstance(config)
     }
@@ -83,11 +81,9 @@ object MethodTraceAgent {
         temp: File
     ) {
         try{
-            // Handle both Bootstrap ClassLoader (null) and Application ClassLoader
             val classLoader = clazz.classLoader
             if (classLoader == null) {
                 if (DEBUG) println("[MethodTrace] Processing Bootstrap ClassLoader class: ${clazz.name}")
-                // For Bootstrap ClassLoader classes, try to get the JAR from protection domain
                 val codeSource = clazz.protectionDomain?.codeSource
                 if (codeSource != null) {
                     try {
@@ -102,13 +98,11 @@ object MethodTraceAgent {
                 }
             } else {
                 if (DEBUG) println("[MethodTrace] Processing Application ClassLoader class: ${clazz.name}")
-                // For Application ClassLoader classes
                 val codeSource = clazz.protectionDomain?.codeSource
                 if (codeSource != null) {
                     val jarFile = File(codeSource.location.toURI())
                     if (DEBUG) println("[MethodTrace] Adding JAR to bootstrap classpath: ${jarFile.absolutePath}")
 
-                    // Add JAR to Bootstrap ClassPath
                     instrumentation.appendToBootstrapClassLoaderSearch(JarFile(jarFile))
                     if (DEBUG) println("[MethodTrace] JAR successfully added to bootstrap classpath")
                 }
@@ -132,7 +126,6 @@ object MethodTraceAgent {
             }
         }
 
-        // Add essential classes for method tracing
         addClassAndDependencies(MethodTraceAdvice::class.java)
         addClassAndDependencies(MethodTraceAdvice.Companion::class.java)
         addClassAndDependencies(MethodTraceAgent::class.java)
