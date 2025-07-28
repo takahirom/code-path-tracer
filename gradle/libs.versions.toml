@@ -10,6 +10,7 @@ kotlinxCoroutines = "1.9.0"
 agp = "8.6.0"
 javaToolchain = "17"
 javaTarget = "17"
+mavenPublish = "0.28.0"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
