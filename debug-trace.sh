@@ -12,7 +12,7 @@ echo "Running Activity test..."
   --tests="RobolectricMethodTraceTest.testActivityCreationWithTrace" \
   --rerun-tasks --console=plain > /dev/null 2>&1
 
-html_report="sample-robolectric/build/reports/tests/testDebugUnitTest/classes/io.github.takahirom.codepathfinder.sample.RobolectricMethodTraceTest.html"
+html_report="sample-robolectric/build/reports/tests/testDebugUnitTest/classes/io.github.takahirom.codepathtracer.sample.RobolectricMethodTraceTest.html"
 
 if [ ! -f "$html_report" ]; then
     echo "❌ ERROR: HTML report not found" >&2

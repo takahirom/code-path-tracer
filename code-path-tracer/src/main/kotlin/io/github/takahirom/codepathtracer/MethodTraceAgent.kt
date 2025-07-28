@@ -1,4 +1,4 @@
-package io.github.takahirom.codepathfinder
+package io.github.takahirom.codepathtracer
 
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.NamedElement
@@ -92,8 +92,8 @@ object MethodTraceAgent {
         addClassAndDependencies(MethodTraceRule.Config::class.java)
         addClassAndDependencies(TraceEvent::class.java)
         try {
-            addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFilter"))
-            addClassAndDependencies(Class.forName("io.github.takahirom.codepathfinder.DefaultFormatter"))
+            addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFilter"))
+            addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFormatter"))
         } catch (e: Exception) {
             if (DEBUG) println("[MethodTrace] Default filter/formatter classes not found " + e.stackTraceToString())
         }
@@ -116,8 +116,8 @@ object MethodTraceAgent {
             .ignore(
                 ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
                     .or(
-                        ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathfinder.")
-                            .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathfinder.sample")))
+                        ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
+                            .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample")))
                     )
             )
             .type(ElementMatchers.any<TypeDescription>())

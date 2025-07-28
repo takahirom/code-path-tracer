@@ -1,4 +1,4 @@
-package io.github.takahirom.codepathfinder.sample
+package io.github.takahirom.codepathtracer.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -34,7 +34,7 @@ fun MainScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Code Path Finder Sample",
+            text = "Code Path Tracer Sample",
             style = MaterialTheme.typography.headlineMedium
         )
         

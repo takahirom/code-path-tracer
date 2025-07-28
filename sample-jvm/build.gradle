@@ -26,7 +26,7 @@ test {
 
 dependencies {
   // Code path finder library
-  implementation project(":code-path-finder")
+  implementation project(":code-path-tracer")
   
   // Testing
   testImplementation 'junit:junit:4.13.2'

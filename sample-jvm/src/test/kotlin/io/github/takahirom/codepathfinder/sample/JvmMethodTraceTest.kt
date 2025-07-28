@@ -1,6 +1,6 @@
-package io.github.takahirom.codepathfinder.sample
+package io.github.takahirom.codepathtracer.sample
 
-import io.github.takahirom.codepathfinder.MethodTraceRule
+import io.github.takahirom.codepathtracer.MethodTraceRule
 import org.junit.Rule
 import org.junit.Test
 
@@ -8,7 +8,7 @@ class JvmMethodTraceTest {
     
     @get:Rule
     val methodTraceRule = MethodTraceRule.builder()
-        .packageIncludes("io.github.takahirom.codepathfinder.sample")
+        .packageIncludes("io.github.takahirom.codepathtracer.sample")
         .argMaxLength(20)
         .returnMaxLength(30)
         .showArguments(true)

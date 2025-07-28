@@ -62,7 +62,7 @@ android {
 
 dependencies {
   // Code path finder library
-  implementation project(":code-path-finder")
+  implementation project(":code-path-tracer")
   
   // Android basics
   implementation 'androidx.core:core-ktx:1.12.0'

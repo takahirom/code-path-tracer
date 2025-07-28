@@ -1,6 +1,6 @@
-package io.github.takahirom.codepathfinder.sample
+package io.github.takahirom.codepathtracer.sample
 
-import io.github.takahirom.codepathfinder.MethodTraceRule
+import io.github.takahirom.codepathtracer.MethodTraceRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

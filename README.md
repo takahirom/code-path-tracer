@@ -1,4 +1,4 @@
-# code-path-finder
+# code-path-tracer
 
 A ByteBuddy-based method tracing library extracted from Roborazzi. This library provides dynamic method instrumentation and tracing capabilities for JVM and Android applications.
 
@@ -43,7 +43,7 @@ class MyTest {
 
 ## Project Structure
 
-- `code-path-finder/`: Core library with ByteBuddy agent and tracing logic
+- `code-path-tracer/`: Core library with ByteBuddy agent and tracing logic
 - `sample-robolectric/`: Android library module with Robolectric test examples
 
 ## Development

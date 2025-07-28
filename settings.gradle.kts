@@ -25,11 +25,11 @@ plugins {
   id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-// Include the `code-path-finder`, `sample-robolectric`, and `sample-jvm` subprojects in the build.
+// Include the `code-path-tracer`, `sample-robolectric`, and `sample-jvm` subprojects in the build.
 // If there are changes in only one of the projects, Gradle will rebuild only the one that has changed.
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
-include(":code-path-finder")
+include(":code-path-tracer")
 include(":sample-robolectric")
 include(":sample-jvm")
 
-rootProject.name = "code-path-finder"
+rootProject.name = "code-path-tracer"

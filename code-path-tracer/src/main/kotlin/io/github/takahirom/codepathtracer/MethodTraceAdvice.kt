@@ -1,4 +1,4 @@
-package io.github.takahirom.codepathfinder
+package io.github.takahirom.codepathtracer
 
 /**
  * Static class for ByteBuddy Advice

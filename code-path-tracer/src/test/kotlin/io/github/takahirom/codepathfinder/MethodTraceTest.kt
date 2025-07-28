@@ -1,4 +1,4 @@
-package io.github.takahirom.codepathfinder
+package io.github.takahirom.codepathtracer
 
 import org.junit.Rule
 import org.junit.Test
@@ -7,7 +7,7 @@ class MethodTraceTest {
     
     @get:Rule
     val methodTraceRule = MethodTraceRule.builder()
-        .packageIncludes("io.github.takahirom.codepathfinder")
+        .packageIncludes("io.github.takahirom.codepathtracer")
         .methodExcludes("toString", "hashCode", "equals")
         .build()
     
