@@ -112,6 +112,27 @@ codePathTrace(
 .filter { event -> event.depth < 3 }
 ```
 
+### 🎯 Android Touch Event Case Study
+
+Ever wondered "which view actually handled my touch event?" CodePathTracer shows you:
+
+```kotlin
+@get:Rule
+val traceRule = CodePathTracerRule.builder()
+    .filter { event -> event.methodName.contains("TouchEvent") }
+    .build()
+```
+
+**Output reveals the touch event flow:**
+```
+→ PhoneWindow.superDispatchTouchEvent(MotionEvent)
+  → ViewGroup.onInterceptTouchEvent() = false
+  → TextView.onTouchEvent(MotionEvent) = true ✅
+← PhoneWindow.superDispatchTouchEvent = true
+```
+
+**Result:** TextView handled the touch! Mystery solved. 🎯
+
 
 ## 🏃‍♂️ Quick Verification
 

@@ -83,4 +83,83 @@ class CodePathVerificationTest {
             capturedEvents.isNotEmpty()
         )
     }
+    
+    @Test
+    fun verifyClickEventTracing() {
+        println("🖱️ Click Event Tracing Verification")
+        println("===================================")
+        
+        val capturedEvents = mutableListOf<TraceEvent>()
+        
+        println("Creating Activity...")
+        val controller = Robolectric.buildActivity(MainActivity::class.java)
+        val activity = controller.create().start().resume().get()
+        
+        println("\n🎯 Simulating button click with tracing...")
+        
+        // Only trace the click handling part
+        codePathTrace({
+            filter { event ->
+                // Filter only our MainActivity methods to focus on click handling
+                if (event.className.contains("MainActivity")) {
+                    capturedEvents.add(event)
+                    println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}${if (event is TraceEvent.Enter) "(${event.args.joinToString()})" else " = ${(event as TraceEvent.Exit).returnValue}"}")
+                    true
+                } else false
+            }
+        }) {
+            // Simulate actual button click using performClick
+            val button = activity.findViewById<android.widget.Button>(12345) // increment_button
+            button.performClick()
+            println("Button click simulation completed")
+        }
+        
+        println("\n📊 Click Event Chain Analysis:")
+        
+        // Expected methods in click handling chain
+        val expectedClickMethods = listOf(
+            "handleButtonClick",
+            "validateInput", 
+            "processClickEvent",
+            "performBusinessLogic",
+            "multiplyByFactor",
+            "addBonus",
+            "calculateNewCount",
+            "logClickResult"
+        )
+        
+        val capturedMethodNames = capturedEvents.map { it.methodName }.toSet()
+        
+        var clickChainFound = true
+        expectedClickMethods.forEach { methodName ->
+            val found = capturedMethodNames.contains(methodName)
+            if (found) {
+                println("✅ $methodName - traced successfully")
+            } else {
+                println("❌ $methodName - NOT FOUND")
+                clickChainFound = false
+            }
+        }
+        
+        println("\nTotal click-related events captured: ${capturedEvents.size}")
+        
+        if (clickChainFound) {
+            println("\n🎉 Complete click event chain traced successfully!")
+            println("This demonstrates the power of CodePathTracer for understanding complex UI event flows!")
+        } else {
+            println("\n💡 Some methods in the click chain were not captured.")
+        }
+        
+        // Verify we captured the main click handler
+        assertTrue(
+            "handleButtonClick should be traced",
+            capturedMethodNames.contains("handleButtonClick")
+        )
+        
+        // Verify we captured some business logic methods
+        assertTrue(
+            "Should capture business logic methods",
+            capturedMethodNames.any { it in listOf("performBusinessLogic", "multiplyByFactor", "addBonus") }
+        )
+    }
 }

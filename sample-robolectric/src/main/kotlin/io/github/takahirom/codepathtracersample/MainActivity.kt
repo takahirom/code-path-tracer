@@ -1,75 +1,63 @@
 package io.github.takahirom.codepathtracersample
 
 import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
+    private var count = 0
+    private lateinit var countTextView: TextView
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            CodePathFinderTheme {
-                MainScreen()
-            }
+        
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 48, 48, 48)
         }
+        
+        val titleTextView = TextView(this).apply {
+            text = "Code Path Tracer Sample"
+            textSize = 24f
+        }
+        
+        countTextView = TextView(this).apply {
+            text = "Count: $count"
+            textSize = 18f
+            setPadding(0, 32, 0, 32)
+        }
+        
+        val button = Button(this).apply {
+            id = 12345 // increment_button
+            text = "Increment"
+            setOnClickListener { handleButtonClick() }
+        }
+        
+        layout.addView(titleTextView)
+        layout.addView(countTextView)
+        layout.addView(button)
+        
+        setContentView(layout)
     }
-}
-
-@Composable
-fun MainScreen() {
-    var count by remember { mutableIntStateOf(0) }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Code Path Tracer Sample",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Text(
-            text = "Count: $count",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = { count = calculateNewCount(count) }
-        ) {
-            Text("Increment")
-        }
+    fun handleButtonClick() {
+        val processed = processClick(count)
+        updateUI(processed)
     }
-}
 
-private fun calculateNewCount(current: Int): Int {
-    return current + 1
-}
+    fun processClick(value: Int): Int {
+        return calculateValue(value)
+    }
 
-@Composable
-fun CodePathFinderTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        content = content
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    CodePathFinderTheme {
-        MainScreen()
+    fun calculateValue(input: Int): Int {
+        return input + 1
+    }
+    
+    fun updateUI(newCount: Int) {
+        count = newCount
+        countTextView.text = "Count: $count"
     }
 }

@@ -30,7 +30,8 @@ sealed class TraceEvent {
                     obj is Unit -> "Unit"
                     else -> obj.toString().take(maxLength)
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // We need to catch all exception because some objects may throw AssertionError in toString()
                 "error " + e.message.orEmpty().take(maxLength)
             } finally {
                 isToStringCalling.set(false)
@@ -81,7 +82,7 @@ sealed class TraceEvent {
      * Default formatting for trace events.
      */
     fun defaultFormat(maxLength: Int = 30): String {
-        val indent = "  ".repeat(depth.coerceAtMost(10))
+        val indent = "  ".repeat(depth.coerceAtMost(20))
         return when (this) {
             is Enter -> {
                 val argsStr = if (args.isNotEmpty()) {
