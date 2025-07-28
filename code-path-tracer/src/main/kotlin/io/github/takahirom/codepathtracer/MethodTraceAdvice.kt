@@ -49,6 +49,7 @@ class MethodTraceAdvice {
         @JvmStatic  
         @net.bytebuddy.asm.Advice.OnMethodExit
         fun methodExit(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.Return(typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) returnValue: Any?) {
+            
             val config = CodePathTracerAgent.getConfig() ?: return
             
             val depth = (depthCounter.get() ?: 1) - 1

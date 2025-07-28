@@ -115,6 +115,9 @@ object CodePathTracerAgent {
             .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
             .ignore(
                 ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("java."))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("kotlin."))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("org.junit."))
                     .or(
                         ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
                             .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample")))
