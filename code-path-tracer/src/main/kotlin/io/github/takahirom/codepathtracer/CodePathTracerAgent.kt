@@ -94,7 +94,7 @@ object CodePathTracerAgent {
         if (CodePathTracer.DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("code-path-tracer-").toFile()
         try {
-            fallbackToIndividualInjection(temp, instrumentation)
+            injectRequiredClasses(temp, instrumentation)
         } finally {
             // Clean up temporary directory and its contents for security
             temp.deleteRecursively()
@@ -102,7 +102,7 @@ object CodePathTracerAgent {
         return createAgentBuilderInstance()
     }
 
-    private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
+    private fun injectRequiredClasses(temp: File, instrumentation: Instrumentation) {
         val classesToInject = mutableMapOf<TypeDescription.ForLoadedType, ByteArray>()
 
         fun addClassAndDependencies(clazz: Class<*>) {
