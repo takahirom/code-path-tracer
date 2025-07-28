@@ -12,51 +12,51 @@ import java.io.File
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 
-private const val DEBUG = false
+// DEBUG flag moved to CodePathTracer.DEBUG
 
 /**
  * ByteBuddy automatic transformation agent (configurable version)
  */
 object CodePathTracerAgent {
-    private const val DEBUG = false
+    // DEBUG flag moved to CodePathTracer.DEBUG
     private var config: CodePathTracer.Config? = null
     private var isInitialized = false
 
 
     fun initialize(config: CodePathTracer.Config) {
-        if (DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
 
         if (isInitialized) {
             // Already initialized, just update config
             this.config = config
-            if (DEBUG) println("[MethodTrace] Agent already initialized, updating config only")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Agent already initialized, updating config only")
             return
         }
 
         this.config = config
-        if (DEBUG) println("[MethodTrace] Starting agent initialization with config: $config")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Starting agent initialization with config: $config")
 
         // Enable ByteBuddy experimental features
         System.setProperty("net.bytebuddy.experimental", "true")
-        if (DEBUG) println("[MethodTrace] Set ByteBuddy experimental property")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Set ByteBuddy experimental property")
 
         try {
-            if (DEBUG) println("[MethodTrace] Installing ByteBuddy agent...")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Installing ByteBuddy agent...")
             val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
-            if (DEBUG) println("[MethodTrace] ByteBuddy agent installed: $instrumentation")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy agent installed: $instrumentation")
 
             val agentBuilder = createAgentBuilder(config, instrumentation)
-            if (DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
 
             agentBuilder
                 .installOnByteBuddyAgent()
-            if (DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
 
             isInitialized = true
-            if (DEBUG) println("[MethodTrace] Agent initialization completed successfully")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Agent initialization completed successfully")
 
         } catch (e: Exception) {
-            if (DEBUG) {
+            if (CodePathTracer.DEBUG) {
                 println("[MethodTrace] Agent initialization FAILED: ${e.message}")
                 e.printStackTrace()
             }
@@ -68,21 +68,26 @@ object CodePathTracerAgent {
 
     @Suppress("NewApi")
     private fun createAgentBuilder(config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
-        if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("tmp").toFile()
         fallbackToIndividualInjection(temp, instrumentation)
       return createAgentBuilderInstance()
     }
 
     private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
-        val classesToInject = mutableMapOf<TypeDescription.ForLoadedType, ByteArray?>()
+        val classesToInject = mutableMapOf<TypeDescription.ForLoadedType, ByteArray>()
 
         fun addClassAndDependencies(clazz: Class<*>) {
             try {
-                classesToInject[TypeDescription.ForLoadedType(clazz)] = ClassFileLocator.ForClassLoader.read(clazz)
-                if (DEBUG) println("[MethodTrace] Added class: ${clazz.name}")
+                val classBytes = ClassFileLocator.ForClassLoader.read(clazz)
+                if (classBytes != null) {
+                    classesToInject[TypeDescription.ForLoadedType(clazz)] = classBytes
+                    if (CodePathTracer.DEBUG) println("[MethodTrace] Added class: ${clazz.name}")
+                } else {
+                    if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to read class bytes for: ${clazz.name}")
+                }
             } catch (e: Exception) {
-                if (DEBUG) println("[MethodTrace] Failed to add class ${clazz.name}: ${e.message}")
+                if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to add class ${clazz.name}: ${e.message}")
             }
         }
 
@@ -95,17 +100,24 @@ object CodePathTracerAgent {
             addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFilter"))
             addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFormatter"))
         } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Default filter/formatter classes not found " + e.stackTraceToString())
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Default filter/formatter classes not found " + e.stackTraceToString())
         }
         try {
             addClassAndDependencies(Class.forName("kotlin.jvm.internal.Intrinsics"))
         } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Kotlin intrinsics not found " + e.stackTraceToString())
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Kotlin intrinsics not found " + e.stackTraceToString())
         }
 
-        ClassInjector.UsingInstrumentation
-            .of(temp, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, instrumentation)
-            .inject(classesToInject)
+        try {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Injecting ${classesToInject.size} classes to Bootstrap ClassPath")
+            ClassInjector.UsingInstrumentation
+                .of(temp, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, instrumentation)
+                .inject(classesToInject)
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Successfully injected classes to Bootstrap ClassPath")
+        } catch (e: Exception) {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to inject classes: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     private fun createAgentBuilderInstance(): AgentBuilder {
@@ -121,6 +133,7 @@ object CodePathTracerAgent {
                     .or(
                         ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
                             .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample")))
+                            .and(ElementMatchers.not(ElementMatchers.nameContains("SampleCalculator")))
                     )
             )
             .type(ElementMatchers.any<TypeDescription>())
@@ -146,7 +159,7 @@ class DebugListener : AgentBuilder.Listener {
         module: JavaModule?,
         loaded: Boolean
     ) {
-        if (DEBUG) println("[MethodTrace] Discovery: $typeName")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Discovery: $typeName")
     }
 
     override fun onTransformation(
@@ -156,7 +169,7 @@ class DebugListener : AgentBuilder.Listener {
         loaded: Boolean,
         dynamicType: net.bytebuddy.dynamic.DynamicType
     ) {
-        if (DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
     }
 
     override fun onIgnored(
@@ -165,7 +178,7 @@ class DebugListener : AgentBuilder.Listener {
         module: JavaModule?,
         loaded: Boolean
     ) {
-        if (DEBUG) println("[MethodTrace] Ignored: ${typeDescription.name}")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Ignored: ${typeDescription.name}")
     }
 
     override fun onError(
@@ -175,7 +188,7 @@ class DebugListener : AgentBuilder.Listener {
         loaded: Boolean,
         throwable: Throwable
     ) {
-        if (DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
     }
 
     override fun onComplete(
@@ -184,6 +197,6 @@ class DebugListener : AgentBuilder.Listener {
         module: JavaModule?,
         loaded: Boolean
     ) {
-        if (DEBUG) println("[MethodTrace] Complete: $typeName")
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Complete: $typeName")
     }
 }

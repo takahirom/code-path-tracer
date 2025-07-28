@@ -48,6 +48,11 @@ class CodePathTracer(private val config: Config) {
     
     companion object {
         /**
+         * Global debug flag for all tracing components
+         */
+        const val DEBUG = false
+        
+        /**
          * Create a builder for configuration
          */
         fun builder() = Builder()

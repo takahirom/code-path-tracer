@@ -7,10 +7,6 @@ class MethodTraceTest {
     
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
-        .filter { event -> 
-            event.className.startsWith("io.github.takahirom.codepathtracer") &&
-            !listOf("toString", "hashCode", "equals").contains(event.methodName)
-        }
         .build()
     
     @Test

@@ -78,7 +78,7 @@ class CodePathTracerRule private constructor(
     
     
     companion object {
-        private const val DEBUG = false
+        // DEBUG flag moved to CodePathTracer.DEBUG
         private var isAgentInstalled = false
         
         fun builder() = Builder()
@@ -89,14 +89,14 @@ class CodePathTracerRule private constructor(
         init {
             try {
                 // Trigger CodePathTracerAgent class loading which will initialize the agent
-                if (DEBUG) System.out.println("[MethodTrace] CodePathTracerRule static init - triggering agent")
+                if (CodePathTracer.DEBUG) System.out.println("[MethodTrace] CodePathTracerRule static init - triggering agent")
                 val defaultConfig = CodePathTracer.Config()
                 // This will trigger CodePathTracerAgent's init block
                 CodePathTracerAgent.initialize(defaultConfig)
                 isAgentInstalled = true
-                if (DEBUG) System.out.println("[MethodTrace] Agent installed via static initialization")
+                if (CodePathTracer.DEBUG) System.out.println("[MethodTrace] Agent installed via static initialization")
             } catch (e: Exception) {
-                if (DEBUG) {
+                if (CodePathTracer.DEBUG) {
                     System.out.println("[MethodTrace] Static agent setup failed: ${e.message}")
                     e.printStackTrace()
                 }
@@ -139,7 +139,10 @@ class CodePathTracerRule private constructor(
             // Update agent config (agent is already installed via static init)
             CodePathTracerAgent.initialize(config)
         } catch (e: Exception) {
-            if (DEBUG) println("[MethodTrace] Failed to setup agent: ${e.message}")
+            if (CodePathTracer.DEBUG) {
+                println("[MethodTrace] Failed to setup agent: ${e.message}")
+                e.printStackTrace()
+            }
         }
     }
 }
