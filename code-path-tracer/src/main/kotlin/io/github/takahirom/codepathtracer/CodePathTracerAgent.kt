@@ -20,6 +20,7 @@ object CodePathTracerAgent {
     // DEBUG flag moved to CodePathTracer.DEBUG
     private var config: CodePathTracer.Config? = null
     private var isInitialized = false
+    private var resettableTransformer: net.bytebuddy.agent.builder.ResettableClassFileTransformer? = null
 
 
     fun initialize(config: CodePathTracer.Config) {
@@ -47,7 +48,7 @@ object CodePathTracerAgent {
             val agentBuilder = createAgentBuilder(config, instrumentation)
             if (CodePathTracer.DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
 
-            agentBuilder
+            resettableTransformer = agentBuilder
                 .installOnByteBuddyAgent()
             if (CodePathTracer.DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
 
@@ -123,15 +124,21 @@ object CodePathTracerAgent {
         return AgentBuilder.Default()
             .with(DebugListener())
             .disableClassFormatChanges()
-            .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
+            .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
             .ignore(
                 ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
                     .or(ElementMatchers.nameStartsWith<NamedElement>("java."))
                     .or(ElementMatchers.nameStartsWith<NamedElement>("kotlin."))
                     .or(ElementMatchers.nameStartsWith<NamedElement>("org.junit."))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
-                        .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample"))))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("sun."))
+                    // jdk. causes StackOverflow - do not add
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("com.sun."))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("android.util.DebugUtils"))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer."))
+                    .or(ElementMatchers.nameContains<NamedElement>("\$\$Lambda\$"))
+                    .or(ElementMatchers.nameContains<NamedElement>("\$lambda\$"))
+                    .or(ElementMatchers.nameContains<NamedElement>("JvmMethodTraceTest\$methodTraceRule\$"))
             )
             .type(ElementMatchers.not(ElementMatchers.isInterface())
                 .and(ElementMatchers.not(ElementMatchers.isAbstract()))
@@ -155,6 +162,23 @@ object CodePathTracerAgent {
     fun reset() {
         if (CodePathTracer.DEBUG) println("[MethodTrace] Resetting configuration")
         config = null
+        
+        // Reset the ByteBuddy transformer
+        try {
+            val resetSuccess = resettableTransformer?.reset(
+                net.bytebuddy.agent.ByteBuddyAgent.getInstrumentation(),
+                AgentBuilder.RedefinitionStrategy.RETRANSFORMATION
+            )
+            if (CodePathTracer.DEBUG) {
+                if (resetSuccess == true) {
+                    println("[MethodTrace] ByteBuddy transformer reset successfully")
+                } else {
+                    println("[MethodTrace] ByteBuddy transformer reset returned: $resetSuccess")
+                }
+            }
+        } catch (e: Exception) {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy transformer reset failed: ${e.message}")
+        }
     }
 
 }

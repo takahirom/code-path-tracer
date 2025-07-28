@@ -1,5 +1,7 @@
-package io.github.takahirom.codepathtracer.sample
+package io.github.takahirom.codepathtracersample
 
+import io.github.takahirom.codepathtracer.CodePathTracer
+import io.github.takahirom.codepathtracer.CodePathTracerAgent
 import io.github.takahirom.codepathtracer.CodePathTracerRule
 import io.github.takahirom.codepathtracer.TraceEvent
 import io.github.takahirom.codepathtracer.codePathTrace
@@ -11,11 +13,8 @@ class JvmMethodTraceTest {
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event -> 
-            // Use broader filter - trace everything in our test package
-            event.className.contains("sample") && 
-                             (event.className.contains("Calculator") || 
-                              event.className.contains("Processor") ||
-                              event.className.contains("JvmMethodTraceTest"))
+            // Trace everything with sample in name
+            event.className.contains("Sample") || event.className.contains("sample")
         }
         .formatter { event -> 
             when (event) {
@@ -29,7 +28,7 @@ class JvmMethodTraceTest {
     fun testBusinessLogicWithTrace() {
         println("=== Testing Business Logic with Method Trace ===")
         
-        val calculator = SampleCalculator()
+        val calculator = TestCalculator()
         
         // Test addition
         val result1 = calculator.add(10, 5)
@@ -69,12 +68,18 @@ class JvmMethodTraceTest {
     fun testSimpleCodePathTrace() {
         println("=== Testing Simple CodePathTrace DSL ===")
         
+        // 先にエージェントを初期化してからクラスをロード
+        CodePathTracerAgent.initialize(
+            CodePathTracer.simple()
+        )
+        Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
+        
         val calculator = SampleCalculator()
         
         codePathTrace {
             calculator.complexCalculation(5, 3)
         }
-        
+
         println("=== DSL test completed ===")
     }
     
