@@ -23,6 +23,7 @@ object CodePathTracerAgent {
     private var resettableTransformer: net.bytebuddy.agent.builder.ResettableClassFileTransformer? = null
 
 
+    @Synchronized
     fun initialize(config: CodePathTracer.Config) {
         if (CodePathTracer.DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
 
@@ -184,6 +185,7 @@ object CodePathTracerAgent {
             )
     }
 
+    @Synchronized
     fun getConfig(): CodePathTracer.Config? = config
     
     /**
@@ -270,6 +272,7 @@ object CodePathTracerAgent {
     /**
      * Reset configuration to disable tracing
      */
+    @Synchronized
     fun reset() {
         if (CodePathTracer.DEBUG) println("[MethodTrace] Resetting configuration")
         config = null
