@@ -15,6 +15,19 @@ Traditional debugging tools can be challenging for AI developers and complex sce
 
 Code Path Tracer solves these problems by providing **visual execution traces** that show exactly how your code flows, making debugging accessible to both humans and AI tools.
 
+## 📦 Installation
+
+**Coming Soon!** 🚧
+
+We're working on making CodePathTracer available through:
+- Maven Central
+
+For now, clone and build locally:
+```bash
+git clone https://github.com/takahirom/code-path-finder.git
+./gradlew publishToMavenLocal
+```
+
 ## 🚀 Quick Start
 
 Just wrap your code and see what happens:
@@ -139,20 +152,20 @@ val traceRule = CodePathTracerRule.builder()
 Verify everything works:
 
 ```bash
-./debug-trace.sh
+./gradlew test  # Run all tests with tracing examples
 ```
 
-This checks that method tracing works across:
-- ✅ Project code (MainActivity.onCreate)  
-- ✅ Library code (SnapshotThreadLocal.get)
-- ✅ Android Framework (PhoneWindow.getPanelState)
+This confirms that method tracing works across:
+- ✅ JVM applications  
+- ✅ Android applications (via Robolectric)
+- ✅ Complex business logic chains
 
 ## 🛠️ Development
 
 ```bash
 ./gradlew build              # Build everything
 ./gradlew :code-path-tracer:test  # Run core tests  
-./debug-trace.sh             # Verify tracing works
+./gradlew test               # Verify tracing works
 ```
 
 ---
