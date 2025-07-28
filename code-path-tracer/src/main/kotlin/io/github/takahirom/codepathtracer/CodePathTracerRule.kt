@@ -55,13 +55,13 @@ object DefaultFormatter {
  * Usage:
  * ```
  * @get:Rule
- * val methodTraceRule = MethodTraceRule.builder()
+ * val codePathTracerRule = CodePathTracerRule.builder()
  *     .packageIncludes("io.github.takahirom.codepathtracer")
  *     .methodExcludes("toString", "hashCode", "equals")
  *     .build()
  * 
  * // Or with custom filter/formatter
- * val customRule = MethodTraceRule.builder()
+ * val customRule = CodePathTracerRule.builder()
  *     .filter { event -> 
  *         event.className.startsWith("com.example") && 
  *         event.depth < 5 
@@ -72,15 +72,10 @@ object DefaultFormatter {
  *     .build()
  * ```
  */
-class MethodTraceRule private constructor(
-    private val config: Config
+class CodePathTracerRule private constructor(
+    private val config: CodePathTracer.Config
 ) : TestRule {
     
-    data class Config(
-        val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
-        val formatter: (TraceEvent) -> String = DefaultFormatter::format,
-        val enabled: Boolean = true
-    )
     
     companion object {
         private const val DEBUG = false
@@ -93,11 +88,11 @@ class MethodTraceRule private constructor(
         // Static initialization to install agent early
         init {
             try {
-                // Trigger MethodTraceAgent class loading which will initialize the agent
-                if (DEBUG) System.out.println("[MethodTrace] MethodTraceRule static init - triggering agent")
-                val defaultConfig = Config()
-                // This will trigger MethodTraceAgent's init block
-                MethodTraceAgent.initialize(defaultConfig)
+                // Trigger CodePathTracerAgent class loading which will initialize the agent
+                if (DEBUG) System.out.println("[MethodTrace] CodePathTracerRule static init - triggering agent")
+                val defaultConfig = CodePathTracer.Config()
+                // This will trigger CodePathTracerAgent's init block
+                CodePathTracerAgent.initialize(defaultConfig)
                 isAgentInstalled = true
                 if (DEBUG) System.out.println("[MethodTrace] Agent installed via static initialization")
             } catch (e: Exception) {
@@ -119,7 +114,7 @@ class MethodTraceRule private constructor(
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
         
         
-        fun build() = MethodTraceRule(Config(filter, formatter, enabled))
+        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled))
     }
     
     override fun apply(base: Statement, description: Description): Statement {
@@ -142,7 +137,7 @@ class MethodTraceRule private constructor(
     private fun setupAgent() {
         try {
             // Update agent config (agent is already installed via static init)
-            MethodTraceAgent.initialize(config)
+            CodePathTracerAgent.initialize(config)
         } catch (e: Exception) {
             if (DEBUG) println("[MethodTrace] Failed to setup agent: ${e.message}")
         }

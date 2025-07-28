@@ -1,6 +1,6 @@
 package io.github.takahirom.codepathtracer.sample
 
-import io.github.takahirom.codepathtracer.MethodTraceRule
+import io.github.takahirom.codepathtracer.CodePathTracerRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 class RobolectricMethodTraceTest {
     
     @get:Rule
-    val methodTraceRule = MethodTraceRule.builder()
+    val methodTraceRule = CodePathTracerRule.builder()
         .build()
     
     @Test

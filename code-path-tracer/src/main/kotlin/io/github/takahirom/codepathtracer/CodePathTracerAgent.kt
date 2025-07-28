@@ -17,13 +17,13 @@ private const val DEBUG = false
 /**
  * ByteBuddy automatic transformation agent (configurable version)
  */
-object MethodTraceAgent {
+object CodePathTracerAgent {
     private const val DEBUG = false
-    private var config: MethodTraceRule.Config? = null
+    private var config: CodePathTracer.Config? = null
     private var isInitialized = false
 
 
-    fun initialize(config: MethodTraceRule.Config) {
+    fun initialize(config: CodePathTracer.Config) {
         if (DEBUG) println("[MethodTrace] initialize() called. isInitialized=$isInitialized")
 
         if (isInitialized) {
@@ -67,7 +67,7 @@ object MethodTraceAgent {
 
 
     @Suppress("NewApi")
-    private fun createAgentBuilder(config: MethodTraceRule.Config, instrumentation: Instrumentation): AgentBuilder {
+    private fun createAgentBuilder(config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
         if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("tmp").toFile()
         fallbackToIndividualInjection(temp, instrumentation)
@@ -88,8 +88,8 @@ object MethodTraceAgent {
 
         addClassAndDependencies(MethodTraceAdvice::class.java)
         addClassAndDependencies(MethodTraceAdvice.Companion::class.java)
-        addClassAndDependencies(MethodTraceAgent::class.java)
-        addClassAndDependencies(MethodTraceRule.Config::class.java)
+        addClassAndDependencies(CodePathTracerAgent::class.java)
+        addClassAndDependencies(CodePathTracer.Config::class.java)
         addClassAndDependencies(TraceEvent::class.java)
         try {
             addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFilter"))
@@ -132,7 +132,7 @@ object MethodTraceAgent {
             )
     }
 
-    fun getConfig(): MethodTraceRule.Config? = config
+    fun getConfig(): CodePathTracer.Config? = config
 
 }
 
