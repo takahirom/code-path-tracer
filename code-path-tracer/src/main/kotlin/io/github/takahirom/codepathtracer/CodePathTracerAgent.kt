@@ -92,9 +92,14 @@ object CodePathTracerAgent {
     @Suppress("NewApi")
     private fun createAgentBuilder(config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
         if (CodePathTracer.DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
-        val temp = Files.createTempDirectory("tmp").toFile()
-        fallbackToIndividualInjection(temp, instrumentation)
-      return createAgentBuilderInstance()
+        val temp = Files.createTempDirectory("code-path-tracer-").toFile()
+        try {
+            fallbackToIndividualInjection(temp, instrumentation)
+        } finally {
+            // Clean up temporary directory and its contents for security
+            temp.deleteRecursively()
+        }
+        return createAgentBuilderInstance()
     }
 
     private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
