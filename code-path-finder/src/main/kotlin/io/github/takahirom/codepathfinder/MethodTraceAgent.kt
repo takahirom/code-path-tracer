@@ -214,10 +214,3 @@ object MethodTraceAgent {
 
 }
 
-object MyInterceptor {
-    @Throws(java.lang.Exception::class)
-    fun intercept(@SuperCall zuper: Callable<String?>): String? {
-        println("Intercepted!")
-        return zuper.call()
-    }
-}
