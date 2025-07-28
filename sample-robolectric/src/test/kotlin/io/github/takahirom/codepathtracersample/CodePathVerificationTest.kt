@@ -2,7 +2,6 @@ package io.github.takahirom.codepathtracersample
 
 import io.github.takahirom.codepathtracer.TraceEvent
 import io.github.takahirom.codepathtracer.codePathTrace
-import io.github.takahirom.codepathtracersample.MainActivity
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith

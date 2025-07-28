@@ -1,4 +1,4 @@
-package io.github.takahirom.codepathtracer.sample
+package io.github.takahirom.codepathtracersample
 
 class SampleActivity {
     
