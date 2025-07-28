@@ -27,7 +27,7 @@ codePathTrace {
 **Output:**
 ```
 → Calculator()
-← Calculator = null
+← Calculator
 → Calculator.complexCalculation(5, 3)
   → Calculator.add(5, 3)
   ← Calculator.add = 8
@@ -105,7 +105,7 @@ val calc = Calculator("MyCalculator")  // ← Traced automatically!
 ```
 ➤ Calculator(1)
   Initializing MyCalculator
-⬅ Calculator = null
+⬅ Calculator
 ```
 
 ### Inner Class Support

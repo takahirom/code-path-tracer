@@ -25,7 +25,11 @@ sealed class TraceEvent {
             }
             return try {
                 isToStringCalling.set(true)
-                obj?.toString()?.take(10) ?: "null"
+                when {
+                    obj == null -> "null"
+                    obj is Unit -> "Unit"
+                    else -> obj.toString().take(10)
+                }
             } catch (e: Exception) {
                 "error " + e.message.orEmpty().take(10)
             } finally {
@@ -103,8 +107,13 @@ sealed class TraceEvent {
                 "$indent→ $fullMethodName($argsStr)"
             }
             is Exit -> {
-                val returnStr = safeToString(returnValue)
-                val returnPart = if (returnStr.isNotEmpty()) " = $returnStr" else ""
+                // Don't show null or Unit return values (constructors and void methods)
+                val returnPart = if (returnValue == null || returnValue is Unit) {
+                    "" // Hide null/Unit returns (constructors and void methods)
+                } else {
+                    val returnStr = safeToString(returnValue)
+                    if (returnStr.isNotEmpty()) " = $returnStr" else ""
+                }
                 "$indent← $fullMethodName$returnPart"
             }
         }
