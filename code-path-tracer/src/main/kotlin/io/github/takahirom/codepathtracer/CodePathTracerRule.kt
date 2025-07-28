@@ -81,20 +81,7 @@ sealed class TraceEvent {
      * Default formatting for trace events.
      */
     fun defaultFormat(maxLength: Int = 30): String {
-        val indent = when (depth) {
-            0 -> ""
-            1 -> "  "
-            2 -> "    "
-            3 -> "      " 
-            4 -> "        "
-            5 -> "          "
-            6 -> "            "
-            7 -> "              "
-            8 -> "                "
-            9 -> "                  "
-            10 -> "                    "
-            else -> "                      " // max 10+ levels (2 spaces per level)
-        }
+        val indent = "  ".repeat(depth.coerceAtMost(10))
         return when (this) {
             is Enter -> {
                 val argsStr = if (args.isNotEmpty()) {
