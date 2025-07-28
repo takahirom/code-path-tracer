@@ -6,28 +6,6 @@
 
 See exactly what your code is doing with clean, visual method traces. Perfect for debugging, understanding complex codebases, and visualizing execution flow.
 
-## 💡 Motivation
-
-Traditional debugging tools can be challenging for AI developers and complex scenarios:
-- **AI limitations with debuggers** - AI assistants struggle to use breakpoints and step-through debugging effectively
-- **Coverage tools miss the why** - Code coverage shows *what* was executed but not *how* the execution flowed
-- **Complex debugging scenarios** - From Android touch event handling to deep method chains and callbacks, understanding execution flow is notoriously difficult
-
-Code Path Tracer solves these problems by providing **visual execution traces** that show exactly how your code flows, making debugging accessible to both humans and AI tools.
-
-## 📦 Installation
-
-**Coming Soon!** 🚧
-
-We're working on making CodePathTracer available through:
-- Maven Central
-
-For now, clone and build locally:
-```bash
-git clone https://github.com/takahirom/code-path-finder.git
-./gradlew publishToMavenLocal
-```
-
 ## 🚀 Quick Start
 
 Just wrap your code and see what happens:
@@ -51,6 +29,59 @@ codePathTrace {
   ← Calculator.add = 28
 ← Calculator.complexCalculation = 28
 ```
+
+## 🎯 Android Touch Event Case Study
+
+Ever wondered "which view actually handled my touch event?" CodePathTracer shows you:
+
+```kotlin
+@get:Rule
+val traceRule = CodePathTracerRule.builder()
+    .filter { event -> event.methodName.contains("TouchEvent") }
+    .build()
+```
+
+**Output reveals the touch event flow:**
+```
+→ PhoneWindow.superDispatchTouchEvent(MotionEvent)
+  → ViewGroup.onInterceptTouchEvent() = false
+  → TextView.onTouchEvent(MotionEvent) = true ✅
+← PhoneWindow.superDispatchTouchEvent = true
+```
+
+**Result:** TextView handled the touch! Mystery solved. 🎯
+
+## 💡 Motivation
+
+Traditional debugging tools can be challenging for AI developers and complex scenarios:
+- **AI limitations with debuggers** - AI assistants struggle to use breakpoints and step-through debugging effectively
+- **Coverage tools miss the why** - Code coverage shows *what* was executed but not *how* the execution flowed
+- **Complex debugging scenarios** - From Android touch event handling to deep method chains and callbacks, understanding execution flow is notoriously difficult
+
+Code Path Tracer solves these problems by providing **visual execution traces** that show exactly how your code flows, making debugging accessible to both humans and AI tools.
+
+## 📦 Installation
+
+**Coming Soon!** 🚧
+
+We're working on making CodePathTracer available through:
+- Maven Central
+
+For now, clone and build locally:
+```bash
+git clone https://github.com/takahirom/code-path-finder.git
+./gradlew publishToMavenLocal
+```
+
+## ✨ Features
+
+- 🎯 **Zero-config tracing** - Add implementation and call one method
+- 🎨 **Beautiful visual output** - Clean arrows show method entry/exit with depth indentation  
+- 🔧 **Flexible filtering** - Trace only what you care about
+
+## 🎛️ Advanced Configuration
+
+### Custom Formatting 
 
 Want custom formatting? Configure it easily:
 
@@ -102,14 +133,6 @@ codePathTrace(
 }
 ```
 
-## ✨ Features
-
-- 🎯 **Zero-config tracing** - Add implementation and call one method
-- 🎨 **Beautiful visual output** - Clean arrows show method entry/exit with depth indentation  
-- 🔧 **Flexible filtering** - Trace only what you care about
-
-## 🎛️ Advanced Configuration
-
 ### Filtering Examples
 
 ```kotlin
@@ -124,27 +147,6 @@ codePathTrace(
 // Focus on specific depth levels
 .filter { event -> event.depth < 3 }
 ```
-
-### 🎯 Android Touch Event Case Study
-
-Ever wondered "which view actually handled my touch event?" CodePathTracer shows you:
-
-```kotlin
-@get:Rule
-val traceRule = CodePathTracerRule.builder()
-    .filter { event -> event.methodName.contains("TouchEvent") }
-    .build()
-```
-
-**Output reveals the touch event flow:**
-```
-→ PhoneWindow.superDispatchTouchEvent(MotionEvent)
-  → ViewGroup.onInterceptTouchEvent() = false
-  → TextView.onTouchEvent(MotionEvent) = true ✅
-← PhoneWindow.superDispatchTouchEvent = true
-```
-
-**Result:** TextView handled the touch! Mystery solved. 🎯
 
 
 ## 🏃‍♂️ Quick Verification
