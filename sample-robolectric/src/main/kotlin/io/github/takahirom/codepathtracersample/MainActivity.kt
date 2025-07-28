@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         }
         
         val button = Button(this).apply {
-            id = 12345 // increment_button
+            id = 12345
             text = "Increment"
             setOnClickListener { handleButtonClick() }
         }
