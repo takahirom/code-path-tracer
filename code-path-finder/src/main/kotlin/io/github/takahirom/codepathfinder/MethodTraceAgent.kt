@@ -12,6 +12,7 @@ import java.io.File
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 
+private const val DEBUG = false
 
 /**
  * ByteBuddy automatic transformation agent (configurable version)
@@ -70,7 +71,7 @@ object MethodTraceAgent {
         if (DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("tmp").toFile()
         fallbackToIndividualInjection(temp, instrumentation)
-      return createAgentBuilderInstance(config)
+      return createAgentBuilderInstance()
     }
 
     private fun fallbackToIndividualInjection(temp: File, instrumentation: Instrumentation) {
@@ -107,30 +108,9 @@ object MethodTraceAgent {
             .inject(classesToInject)
     }
 
-    private fun createAgentBuilderInstance(config: MethodTraceRule.Config): AgentBuilder {
+    private fun createAgentBuilderInstance(): AgentBuilder {
         return AgentBuilder.Default()
-            .with(object : AgentBuilder.Listener {
-                override fun onDiscovery(
-                    typeName: String,
-                    classLoader: ClassLoader?,
-                    module: JavaModule?,
-                    loaded: Boolean
-                ) {
-                    if (DEBUG) println("[MethodTrace] Discovery: $typeName")
-                }
-                override fun onTransformation(typeDescription: TypeDescription, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean, dynamicType: net.bytebuddy.dynamic.DynamicType) {
-                    if (DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
-                }
-                override fun onIgnored(typeDescription: TypeDescription, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean) {
-                    if (DEBUG) println("[MethodTrace] Ignored: ${typeDescription.name}")
-                }
-                override fun onError(typeName: String, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean, throwable: Throwable) {
-                    if (DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
-                }
-                override fun onComplete(typeName: String, classLoader: ClassLoader?, module: JavaModule?, loaded: Boolean) {
-                    if (DEBUG) println("[MethodTrace] Complete: $typeName")
-                }
-            })
+            .with(DebugListener())
             .disableClassFormatChanges()
             .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
             .ignore(
@@ -140,7 +120,7 @@ object MethodTraceAgent {
                             .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathfinder.sample")))
                     )
             )
-            .type(createTypeMatcher(config))
+            .type(ElementMatchers.any<TypeDescription>())
             .transform(
                 AgentBuilder.Transformer.ForAdvice()
                     .advice(
@@ -154,15 +134,53 @@ object MethodTraceAgent {
 
     fun getConfig(): MethodTraceRule.Config? = config
 
-    private fun createTypeMatcher(config: MethodTraceRule.Config): ElementMatcher<in TypeDescription> {
-        return object : ElementMatcher<TypeDescription> {
-            override fun matches(target: TypeDescription): Boolean {
-                if (DEBUG) println("[MethodTrace] Matching type: ${target.name}")
-                return true
-            }
-        }
-    }
-
-
 }
 
+class DebugListener : AgentBuilder.Listener {
+    override fun onDiscovery(
+        typeName: String,
+        classLoader: ClassLoader?,
+        module: JavaModule?,
+        loaded: Boolean
+    ) {
+        if (DEBUG) println("[MethodTrace] Discovery: $typeName")
+    }
+
+    override fun onTransformation(
+        typeDescription: TypeDescription,
+        classLoader: ClassLoader?,
+        module: JavaModule?,
+        loaded: Boolean,
+        dynamicType: net.bytebuddy.dynamic.DynamicType
+    ) {
+        if (DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
+    }
+
+    override fun onIgnored(
+        typeDescription: TypeDescription,
+        classLoader: ClassLoader?,
+        module: JavaModule?,
+        loaded: Boolean
+    ) {
+        if (DEBUG) println("[MethodTrace] Ignored: ${typeDescription.name}")
+    }
+
+    override fun onError(
+        typeName: String,
+        classLoader: ClassLoader?,
+        module: JavaModule?,
+        loaded: Boolean,
+        throwable: Throwable
+    ) {
+        if (DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
+    }
+
+    override fun onComplete(
+        typeName: String,
+        classLoader: ClassLoader?,
+        module: JavaModule?,
+        loaded: Boolean
+    ) {
+        if (DEBUG) println("[MethodTrace] Complete: $typeName")
+    }
+}
