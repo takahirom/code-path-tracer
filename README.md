@@ -7,9 +7,11 @@ See exactly what your code is doing with clean, visual method traces. Perfect fo
 ## ✨ Features
 
 - 🎯 **Zero-config tracing** - Works out of the box with JUnit
-- 🎨 **Beautiful output** - Visual arrows show method entry/exit 
+- 🎨 **Beautiful output** - Visual arrows show method entry/exit with depth indentation
 - 🔧 **Flexible filtering** - Trace only what you care about
 - 📱 **Android support** - Works with Robolectric tests
+- 🏗️ **Constructor tracing** - See object creation with arguments
+- 🔄 **Inner class support** - Automatic retransformation for inner classes
 - ⚡ **Lightweight** - Minimal overhead, maximum insight
 
 ## 🚀 Quick Start
@@ -24,74 +26,53 @@ codePathTrace {
 
 **Output:**
 ```
-→ JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke()
-← JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke = 28
+               → JvmMethodTraceTest$SampleCalculator()
+               ← JvmMethodTraceTest$SampleCalculator = null
+               → JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke()
+               → JvmMethodTraceTest$SampleCalculator.complexCalculation(5, 3)
+               → JvmMethodTraceTest$SampleCalculator.add(5, 3)
+               ← JvmMethodTraceTest$SampleCalculator.add = 8
+               → JvmMethodTraceTest$SampleCalculator.multiply(8, 2)
+               ← JvmMethodTraceTest$SampleCalculator.multiply = 16
+               → JvmMethodTraceTest$SampleCalculator.add(16, 12)
+               ← JvmMethodTraceTest$SampleCalculator.add = 28
+               ← JvmMethodTraceTest$SampleCalculator.complexCalculation = 28
+               ← JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke = 28
 ```
 
-Want beautiful formatting? Easy!
+Want custom formatting? Use JUnit Rules:
 
 ```kotlin
-codePathTrace({ 
-    filter { it.className.contains("Calculator") }
-    formatter { event ->
+@get:Rule
+val methodTraceRule = CodePathTracerRule.builder()
+    .filter { event -> event.className.contains("Calculator") }
+    .formatter { event -> 
         when (event) {
             is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
             is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
         }
     }
-}) {
+    .build()
+
+@Test
+fun testCalculator() {
     calculator.complexCalculation(5, 3)
 }
 ```
 
 **Output:**
 ```
-➤ Calculator.complexCalculation(2)
-➤ Calculator.add(2)
-⬅ Calculator.add = 8
-➤ Calculator.multiply(2) 
-⬅ Calculator.multiply = 16
-➤ Calculator.add(2)
-⬅ Calculator.add = 28
-⬅ Calculator.complexCalculation = 28
+➤ SampleCalculator.complexCalculation(2)
+➤ SampleCalculator.add(2)
+⬅ SampleCalculator.add = 8
+➤ SampleCalculator.multiply(2) 
+⬅ SampleCalculator.multiply = 16
+➤ SampleCalculator.add(2)
+⬅ SampleCalculator.add = 28
+⬅ SampleCalculator.complexCalculation = 28
 ```
 
-## 🎨 Custom Formatting
-
-Want different symbols? Easy!
-
-```kotlin
-@get:Rule
-val tracer = CodePathTracerRule.builder()
-    .filter { event -> event.className.contains("Calculator") }
-    .formatter { event -> 
-        when (event) {
-            is TraceEvent.Enter -> "➤ ${event.fullMethodName}(${event.args.size})"
-            is TraceEvent.Exit -> "⬅ ${event.fullMethodName} = ${event.returnValue}"
-        }
-    }
-    .build()
-```
-
-## 🎛️ Advanced Usage
-
-### JUnit Rule Integration
-
-For test automation, use the JUnit Rule:
-
-```kotlin
-class MyTest {
-    @get:Rule
-    val tracer = CodePathTracerRule.builder()
-        .filter { event -> event.className.contains("Calculator") }
-        .build()
-    
-    @Test 
-    fun testCalculator() {
-        calculator.add(10, 5)  // ← Automatically traced!
-    }
-}
-```
+## 🎛️ Advanced Configuration
 
 ### Filtering Examples
 
@@ -106,6 +87,52 @@ class MyTest {
 
 // Focus on specific depth levels
 .filter { event -> event.depth < 3 }
+```
+
+### Constructor Tracing
+
+See object creation in action:
+
+```kotlin
+class Calculator(private val name: String = "DefaultCalculator") {
+    init {
+        println("Initializing $name")
+    }
+}
+
+val calc = Calculator("MyCalculator")  // ← Traced automatically!
+```
+
+**Output:**
+```
+➤ Calculator(1)
+  Initializing MyCalculator
+⬅ Calculator = null
+```
+
+### Inner Class Support
+
+Inner classes are automatically detected and traced:
+
+```kotlin
+class OuterClass {
+    inner class InnerCalculator {
+        fun add(a: Int, b: Int) = a + b
+    }
+}
+
+val calc = OuterClass().InnerCalculator()
+calc.add(5, 3)  // ← Inner class methods traced!
+```
+
+**Configuration Options:**
+
+```kotlin
+val config = CodePathTracer.Config(
+    autoRetransform = true,  // Enable inner class tracing (default: true)
+    filter = { event -> event.className.contains("MyClass") },
+    formatter = TraceEvent::defaultFormat
+)
 ```
 
 ## 🏃‍♂️ Quick Verification
