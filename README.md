@@ -11,8 +11,7 @@ See exactly what your code is doing with clean, visual method traces. Perfect fo
 Traditional debugging tools can be challenging for AI developers and complex scenarios:
 - **AI limitations with debuggers** - AI assistants struggle to use breakpoints and step-through debugging effectively
 - **Coverage tools miss the why** - Code coverage shows *what* was executed but not *how* the execution flowed
-- **Android touch debugging complexity** - Understanding which View returned `true` in touch event handling is notoriously difficult
-- **Complex call stacks** - Deep method chains and callbacks make it hard to follow execution flow
+- **Complex debugging scenarios** - From Android touch event handling to deep method chains and callbacks, understanding execution flow is notoriously difficult
 
 Code Path Tracer solves these problems by providing **visual execution traces** that show exactly how your code flows, making debugging accessible to both humans and AI tools.
 
