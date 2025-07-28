@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 class MainActivity : ComponentActivity() {
     private var count = 0
     private lateinit var countTextView: TextView
+    private val buttonId = View.generateViewId()
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +32,7 @@ class MainActivity : ComponentActivity() {
         }
         
         val button = Button(this).apply {
-            id = 12345
+            id = buttonId
             text = "Increment"
             setOnClickListener { handleButtonClick() }
         }
@@ -60,4 +61,6 @@ class MainActivity : ComponentActivity() {
         count = newCount
         countTextView.text = "Count: $count"
     }
+    
+    fun getButtonId(): Int = buttonId
 }

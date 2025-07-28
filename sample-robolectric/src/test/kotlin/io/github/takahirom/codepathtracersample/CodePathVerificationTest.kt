@@ -59,7 +59,7 @@ class CodePathVerificationTest {
                 } else false
             }
         }) {
-            val button = activity.findViewById<android.widget.Button>(12345)
+            val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
             button.performClick()
             println("Button click simulation completed")
         }
