@@ -33,9 +33,9 @@ dependencies {
   implementation project(":code-path-tracer")
   
   // Testing
-  testImplementation 'junit:junit:4.13.2'
+  testImplementation libs.junit
   
   // ByteBuddy for method tracing in tests
-  testImplementation 'net.bytebuddy:byte-buddy:1.14.5'
-  testImplementation 'net.bytebuddy:byte-buddy-agent:1.14.5'
+  testImplementation libs.byteBuddy
+  testImplementation libs.byteBuddyAgent
 }

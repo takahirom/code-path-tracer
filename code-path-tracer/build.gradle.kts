@@ -13,10 +13,10 @@ kotlin {
 }
 
 dependencies {
-  implementation("org.jetbrains.kotlin:kotlin-stdlib")
-  implementation("net.bytebuddy:byte-buddy:1.14.5")
-  implementation("net.bytebuddy:byte-buddy-agent:1.14.5")
-  compileOnly("junit:junit:4.13.2")
+  implementation(libs.kotlinStdlib)
+  implementation(libs.byteBuddy)
+  implementation(libs.byteBuddyAgent)
+  compileOnly(libs.junit)
   
-  testImplementation("junit:junit:4.13.2")
+  testImplementation(libs.junit)
 }
