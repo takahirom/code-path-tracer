@@ -277,6 +277,14 @@ object CodePathTracerAgent {
         if (CodePathTracer.DEBUG) println("[MethodTrace] Resetting configuration")
         config = null
         
+        // Clean up ThreadLocal variables to prevent memory leaks
+        try {
+            MethodTraceAdvice.cleanup()
+            if (CodePathTracer.DEBUG) println("[MethodTrace] ThreadLocal variables cleaned up")
+        } catch (e: Exception) {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] ThreadLocal cleanup failed: ${e.message}")
+        }
+        
         // Reset the ByteBuddy transformer
         try {
             val resetSuccess = resettableTransformer?.reset(

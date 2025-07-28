@@ -78,5 +78,14 @@ class MethodTraceAdvice {
                 isTracing.set(false)
             }
         }
+        
+        /**
+         * Clean up ThreadLocal variables to prevent memory leaks
+         */
+        @JvmStatic
+        fun cleanup() {
+            depthCounter.remove()
+            isTracing.remove()
+        }
     }
 }
