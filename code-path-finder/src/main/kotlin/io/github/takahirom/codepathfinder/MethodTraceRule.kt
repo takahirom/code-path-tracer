@@ -113,14 +113,10 @@ class MethodTraceRule private constructor(
         private var filter: (TraceEvent) -> Boolean = { true }
         private var formatter: (TraceEvent) -> String = TraceEvent::defaultFormat
         private var enabled = true
-        private var typeFilter: (String) -> Boolean = { className -> 
-            className.contains("codepathfinder") && className.contains("sample") 
-        }
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
-        fun typeFilter(predicate: (String) -> Boolean) = apply { typeFilter = predicate }
         
         
         fun build() = MethodTraceRule(Config(filter, formatter, enabled))
