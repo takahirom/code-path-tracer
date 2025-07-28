@@ -13,8 +13,6 @@ data class TraceEvent(
     val args: Array<Any?>,
     val returnValue: Any? = null,
     val depth: Int = 0,
-    val timestamp: Long = System.currentTimeMillis(),
-    val threadName: String = Thread.currentThread().name
 ) {
     val shortClassName: String = className.substringAfterLast('.')
     val fullMethodName: String = "$shortClassName.$methodName"
