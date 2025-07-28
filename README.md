@@ -14,25 +14,46 @@ See exactly what your code is doing with clean, visual method traces. Perfect fo
 
 ## 🚀 Quick Start
 
-Add one line to see method traces in your tests:
+Just wrap your code and see what happens:
 
 ```kotlin
-class MyTest {
-    @get:Rule
-    val tracer = CodePathTracerRule.builder().build()
-    
-    @Test 
-    fun testCalculator() {
-        val calc = Calculator()
-        calc.add(10, 5)  // ← This gets traced automatically!
-    }
+codePathTrace {
+    calculator.complexCalculation(5, 3)
 }
 ```
 
 **Output:**
 ```
-→ Calculator.add(2)
-← Calculator.add
+→ JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke()
+← JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke = 28
+```
+
+Want beautiful formatting? Easy!
+
+```kotlin
+codePathTrace({ 
+    filter { it.className.contains("Calculator") }
+    formatter { event ->
+        when (event) {
+            is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
+            is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
+        }
+    }
+}) {
+    calculator.complexCalculation(5, 3)
+}
+```
+
+**Output:**
+```
+➤ Calculator.complexCalculation(2)
+➤ Calculator.add(2)
+⬅ Calculator.add = 8
+➤ Calculator.multiply(2) 
+⬅ Calculator.multiply = 16
+➤ Calculator.add(2)
+⬅ Calculator.add = 28
+⬅ Calculator.complexCalculation = 28
 ```
 
 ## 🎨 Custom Formatting
@@ -54,20 +75,21 @@ val tracer = CodePathTracerRule.builder()
 
 ## 🎛️ Advanced Usage
 
-### DSL API (Alternative to JUnit Rule)
+### JUnit Rule Integration
+
+For test automation, use the JUnit Rule:
 
 ```kotlin
-// One-off tracing
-codePathTrace {
-    calculator.complexCalculation(5, 3)
-}
-
-// With custom config
-codePathTrace({ 
-    filter { it.className.contains("MyClass") }
-    formatter { "📍 ${it.fullMethodName}" }
-}) {
-    myService.doSomething()
+class MyTest {
+    @get:Rule
+    val tracer = CodePathTracerRule.builder()
+        .filter { event -> event.className.contains("Calculator") }
+        .build()
+    
+    @Test 
+    fun testCalculator() {
+        calculator.add(10, 5)  // ← Automatically traced!
+    }
 }
 ```
 

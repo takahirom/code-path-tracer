@@ -42,7 +42,8 @@ class CodePathTracer(private val config: Config) {
         return try {
             block()
         } finally {
-            // Any cleanup if needed
+            // Reset tracing to stop after this block
+            CodePathTracerAgent.reset()
         }
     }
     
@@ -50,7 +51,7 @@ class CodePathTracer(private val config: Config) {
         /**
          * Global debug flag for all tracing components
          */
-        const val DEBUG = false
+        var DEBUG = false
         
         /**
          * Create a builder for configuration

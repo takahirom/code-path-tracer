@@ -5,7 +5,6 @@ import net.bytebuddy.description.NamedElement
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.dynamic.ClassFileLocator
 import net.bytebuddy.dynamic.loading.ClassInjector
-import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.utility.JavaModule
 import java.io.File
@@ -125,18 +124,18 @@ object CodePathTracerAgent {
             .with(DebugListener())
             .disableClassFormatChanges()
             .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
+            .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
             .ignore(
                 ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
                     .or(ElementMatchers.nameStartsWith<NamedElement>("java."))
                     .or(ElementMatchers.nameStartsWith<NamedElement>("kotlin."))
                     .or(ElementMatchers.nameStartsWith<NamedElement>("org.junit."))
-                    .or(
-                        ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
-                            .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample")))
-                            .and(ElementMatchers.not(ElementMatchers.nameContains("SampleCalculator")))
-                    )
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer.")
+                        .and(ElementMatchers.not(ElementMatchers.nameStartsWith("io.github.takahirom.codepathtracer.sample"))))
             )
-            .type(ElementMatchers.any<TypeDescription>())
+            .type(ElementMatchers.not(ElementMatchers.isInterface())
+                .and(ElementMatchers.not(ElementMatchers.isAbstract()))
+                .and(ElementMatchers.not(ElementMatchers.isSynthetic())))
             .transform(
                 AgentBuilder.Transformer.ForAdvice()
                     .advice(
@@ -149,6 +148,14 @@ object CodePathTracerAgent {
     }
 
     fun getConfig(): CodePathTracer.Config? = config
+    
+    /**
+     * Reset configuration to disable tracing
+     */
+    fun reset() {
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Resetting configuration")
+        config = null
+    }
 
 }
 

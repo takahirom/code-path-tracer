@@ -2,6 +2,7 @@ package io.github.takahirom.codepathtracer.sample
 
 import io.github.takahirom.codepathtracer.CodePathTracerRule
 import io.github.takahirom.codepathtracer.TraceEvent
+import io.github.takahirom.codepathtracer.codePathTrace
 import org.junit.Rule
 import org.junit.Test
 
@@ -9,11 +10,17 @@ class JvmMethodTraceTest {
     
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
-        .filter { event -> event.className.contains("JvmMethodTraceTest") }
+        .filter { event -> 
+            // Use broader filter - trace everything in our test package
+            event.className.contains("sample") && 
+                             (event.className.contains("Calculator") || 
+                              event.className.contains("Processor") ||
+                              event.className.contains("JvmMethodTraceTest"))
+        }
         .formatter { event -> 
             when (event) {
-                is TraceEvent.Enter -> "➤ ${event.className}.${event.methodName}(${event.args.size})"
-                is TraceEvent.Exit -> "⬅ ${event.className}.${event.methodName} = ${event.returnValue}"
+                is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
+                is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
             }
         }
         .build()
@@ -56,6 +63,19 @@ class JvmMethodTraceTest {
         assert(processed.all { it.startsWith("PROCESSED:") })
         
         println("=== Data processing test completed ===")
+    }
+    
+    @Test
+    fun testSimpleCodePathTrace() {
+        println("=== Testing Simple CodePathTrace DSL ===")
+        
+        val calculator = SampleCalculator()
+        
+        codePathTrace {
+            calculator.complexCalculation(5, 3)
+        }
+        
+        println("=== DSL test completed ===")
     }
     
     class SampleCalculator {

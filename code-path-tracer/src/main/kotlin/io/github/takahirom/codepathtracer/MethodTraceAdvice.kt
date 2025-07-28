@@ -10,7 +10,6 @@ class MethodTraceAdvice {
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
         fun methodEnter(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.AllArguments args: Array<Any?>) {
-            
             val config = CodePathTracerAgent.getConfig() ?: return
             
             val depth = depthCounter.get() ?: 0

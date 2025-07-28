@@ -73,8 +73,21 @@ sealed class TraceEvent {
             else -> "           " // max 10+ levels
         }
         return when (this) {
-            is Enter -> "$indent→ $fullMethodName(${args.size})"
-            is Exit -> "$indent← $fullMethodName"
+            is Enter -> {
+                val argsStr = if (args.isNotEmpty()) {
+                    args.joinToString(", ") { arg ->
+                        arg?.toString()?.take(10) ?: "null"
+                    }
+                } else {
+                    ""
+                }
+                "$indent→ $fullMethodName($argsStr)"
+            }
+            is Exit -> {
+                val returnStr = returnValue?.toString()?.take(10) ?: ""
+                val returnPart = if (returnStr.isNotEmpty()) " = $returnStr" else ""
+                "$indent← $fullMethodName$returnPart"
+            }
         }
     }
 }
@@ -116,30 +129,7 @@ class CodePathTracerRule private constructor(
     
     
     companion object {
-        // DEBUG flag moved to CodePathTracer.DEBUG
-        private var isAgentInstalled = false
-        
         fun builder() = Builder()
-        
-        fun simple() = builder().build()
-        
-        // Static initialization to install agent early
-        init {
-            try {
-                // Trigger CodePathTracerAgent class loading which will initialize the agent
-                if (CodePathTracer.DEBUG) System.out.println("[MethodTrace] CodePathTracerRule static init - triggering agent")
-                val defaultConfig = CodePathTracer.Config()
-                // This will trigger CodePathTracerAgent's init block
-                CodePathTracerAgent.initialize(defaultConfig)
-                isAgentInstalled = true
-                if (CodePathTracer.DEBUG) System.out.println("[MethodTrace] Agent installed via static initialization")
-            } catch (e: Exception) {
-                if (CodePathTracer.DEBUG) {
-                    System.out.println("[MethodTrace] Static agent setup failed: ${e.message}")
-                    e.printStackTrace()
-                }
-            }
-        }
     }
     
     class Builder {
