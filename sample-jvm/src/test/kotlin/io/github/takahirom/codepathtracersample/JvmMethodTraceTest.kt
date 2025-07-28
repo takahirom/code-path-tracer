@@ -104,6 +104,17 @@ class JvmMethodTraceTest {
         println("=== DSL test completed ===")
     }
     
+    @Test
+    fun testDepthIndentation() {
+        println("=== Testing Depth Indentation ===")
+        
+        val calculator = TestCalculator("DepthTest")
+        val result = calculator.complexCalculation(2, 1)
+        println("Final result: $result")
+        
+        println("=== Depth test completed ===")
+    }
+    
     class SampleCalculator {
         fun add(a: Int, b: Int): Int {
             println("  Calculator: Adding $a + $b")

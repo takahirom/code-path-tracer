@@ -26,18 +26,16 @@ codePathTrace {
 
 **Output:**
 ```
-               → JvmMethodTraceTest$SampleCalculator()
-               ← JvmMethodTraceTest$SampleCalculator = null
-               → JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke()
-               → JvmMethodTraceTest$SampleCalculator.complexCalculation(5, 3)
-               → JvmMethodTraceTest$SampleCalculator.add(5, 3)
-               ← JvmMethodTraceTest$SampleCalculator.add = 8
-               → JvmMethodTraceTest$SampleCalculator.multiply(8, 2)
-               ← JvmMethodTraceTest$SampleCalculator.multiply = 16
-               → JvmMethodTraceTest$SampleCalculator.add(16, 12)
-               ← JvmMethodTraceTest$SampleCalculator.add = 28
-               ← JvmMethodTraceTest$SampleCalculator.complexCalculation = 28
-               ← JvmMethodTraceTest$testSimpleCodePathTrace$1.invoke = 28
+→ Calculator()
+← Calculator = null
+→ Calculator.complexCalculation(5, 3)
+  → Calculator.add(5, 3)
+  ← Calculator.add = 8
+  → Calculator.multiply(8, 2)
+  ← Calculator.multiply = 16
+  → Calculator.add(16, 12)
+  ← Calculator.add = 28
+← Calculator.complexCalculation = 28
 ```
 
 Want custom formatting? Use JUnit Rules:
