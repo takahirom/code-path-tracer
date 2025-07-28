@@ -20,6 +20,7 @@ android {
     release {
       minifyEnabled false
       proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+      testCoverageEnabled false
     }
   }
   
@@ -56,6 +57,13 @@ android {
           showStandardStreams = true
         }
       }
+    }
+  }
+  
+  // Disable release unit tests
+  afterEvaluate {
+    tasks.named('testReleaseUnitTest').configure {
+      enabled = false
     }
   }
 }

@@ -17,4 +17,3 @@ dependencies {
   implementation("net.bytebuddy:byte-buddy-agent:1.14.5")
   implementation("junit:junit:4.13.2")
 }
-

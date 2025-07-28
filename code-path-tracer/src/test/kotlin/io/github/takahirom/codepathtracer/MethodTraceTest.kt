@@ -7,29 +7,21 @@ class MethodTraceTest {
     
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
+        .filter { event ->
+            // Only trace TestCalculator class, avoid inner classes and lambdas
+            event.className == "io.github.takahirom.codepathtracer.TestCalculator"
+        }
         .build()
     
     @Test
     fun testMethodTrace() {
         println("Starting method trace test...")
         
-        val calculator = SampleCalculator()
+        val calculator = TestCalculator()
         val result = calculator.add(5, 3)
         println("Result: $result")
         
         val multipliedResult = calculator.multiply(result, 2)
         println("Multiplied result: $multipliedResult")
-    }
-    
-    class SampleCalculator {
-        fun add(a: Int, b: Int): Int {
-            println("Adding $a + $b")
-            return a + b
-        }
-        
-        fun multiply(a: Int, b: Int): Int {
-            println("Multiplying $a * $b")
-            return a * b
-        }
     }
 }

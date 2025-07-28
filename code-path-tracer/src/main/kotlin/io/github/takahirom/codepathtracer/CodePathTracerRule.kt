@@ -11,10 +11,10 @@ sealed class TraceEvent {
     abstract val className: String
     abstract val methodName: String
     abstract val depth: Int
-    
+
     val shortClassName: String get() = className.substringAfterLast('.')
     val fullMethodName: String get() = "$shortClassName.$methodName"
-    
+
     /**
      * Method entry event
      */
@@ -34,7 +34,7 @@ sealed class TraceEvent {
             if (depth != other.depth) return false
             return true
         }
-        
+
         override fun hashCode(): Int {
             var result = className.hashCode()
             result = 31 * result + methodName.hashCode()
@@ -43,7 +43,7 @@ sealed class TraceEvent {
             return result
         }
     }
-    
+
     /**
      * Method exit event
      */
@@ -53,7 +53,7 @@ sealed class TraceEvent {
         val returnValue: Any? = null,
         override val depth: Int = 0,
     ) : TraceEvent()
-    
+
     /**
      * Default formatting for trace events.
      */
@@ -76,7 +76,11 @@ sealed class TraceEvent {
             is Enter -> {
                 val argsStr = if (args.isNotEmpty()) {
                     args.joinToString(", ") { arg ->
-                        arg?.toString()?.take(10) ?: "null"
+                        try {
+                            arg?.toString()?.take(10) ?: "null"
+                        } catch (e: Exception) {
+                            "error " + e.message.orEmpty().take(10)
+                        }
                     }
                 } else {
                     ""
@@ -84,7 +88,11 @@ sealed class TraceEvent {
                 "$indent→ $fullMethodName($argsStr)"
             }
             is Exit -> {
-                val returnStr = returnValue?.toString()?.take(10) ?: ""
+                val returnStr = try {
+                    returnValue?.toString()?.take(10) ?: ""
+                } catch (e: Exception) {
+                    "error " + e.message.orEmpty().take(10)
+                }
                 val returnPart = if (returnStr.isNotEmpty()) " = $returnStr" else ""
                 "$indent← $fullMethodName$returnPart"
             }
@@ -102,7 +110,7 @@ object DefaultFormatter {
 
 /**
  * JUnit Rule for automatic method tracing using ByteBuddy
- * 
+ *
  * Usage:
  * ```
  * @get:Rule
@@ -110,15 +118,15 @@ object DefaultFormatter {
  *     .packageIncludes("io.github.takahirom.codepathtracer")
  *     .methodExcludes("toString", "hashCode", "equals")
  *     .build()
- * 
+ *
  * // Or with custom filter/formatter
  * val customRule = CodePathTracerRule.builder()
- *     .filter { event -> 
- *         event.className.startsWith("com.example") && 
- *         event.depth < 5 
+ *     .filter { event ->
+ *         event.className.startsWith("com.example") &&
+ *         event.depth < 5
  *     }
- *     .formatter { event -> 
- *         "${" ".repeat(event.depth)}${event.fullMethodName}(${event.args.size})" 
+ *     .formatter { event ->
+ *         "${" ".repeat(event.depth)}${event.fullMethodName}(${event.args.size})"
  *     }
  *     .build()
  * ```
@@ -126,25 +134,25 @@ object DefaultFormatter {
 class CodePathTracerRule private constructor(
     private val config: CodePathTracer.Config
 ) : TestRule {
-    
-    
+
+
     companion object {
         fun builder() = Builder()
     }
-    
+
     class Builder {
         private var filter: (TraceEvent) -> Boolean = { true }
         private var formatter: (TraceEvent) -> String = TraceEvent::defaultFormat
         private var enabled = true
-        
+
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
-        
-        
+
+
         fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled))
     }
-    
+
     override fun apply(base: Statement, description: Description): Statement {
         return object : Statement() {
             override fun evaluate() {
@@ -152,7 +160,7 @@ class CodePathTracerRule private constructor(
                     base.evaluate()
                     return
                 }
-                
+
                 setupAgent()
                 try {
                     base.evaluate()
@@ -161,7 +169,7 @@ class CodePathTracerRule private constructor(
             }
         }
     }
-    
+
     private fun setupAgent() {
         try {
             // Update agent config (agent is already installed via static init)
