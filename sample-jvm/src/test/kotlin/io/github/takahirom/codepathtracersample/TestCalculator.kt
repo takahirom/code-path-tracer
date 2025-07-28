@@ -1,6 +1,11 @@
 package io.github.takahirom.codepathtracersample
 
-class TestCalculator {
+class TestCalculator(private val name: String = "DefaultCalculator") {
+    
+    init {
+        println("  Calculator: Initializing $name")
+    }
+    
     fun add(a: Int, b: Int): Int {
         println("  Calculator: Adding $a + $b")
         return a + b

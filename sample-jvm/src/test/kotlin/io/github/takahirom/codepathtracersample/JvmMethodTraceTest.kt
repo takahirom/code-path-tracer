@@ -31,7 +31,7 @@ class JvmMethodTraceTest {
     fun testBusinessLogicWithTrace() {
         println("=== Testing Business Logic with Method Trace ===")
         
-        val calculator = TestCalculator()
+        val calculator = TestCalculator("BusinessCalculator")
         
         // Test addition
         val result1 = calculator.add(10, 5)

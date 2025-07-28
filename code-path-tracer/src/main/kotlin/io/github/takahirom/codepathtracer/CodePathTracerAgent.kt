@@ -170,8 +170,8 @@ object CodePathTracerAgent {
                 AgentBuilder.Transformer.ForAdvice()
                     .advice(
                         ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                            .and(ElementMatchers.not(ElementMatchers.isConstructor()))
                             .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
+                            // Include constructors for tracing
                         MethodTraceAdvice::class.java.name
                     )
             )
