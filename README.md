@@ -1,82 +1,112 @@
-# code-path-tracer
+# Code Path Tracer 🔍
 
-A ByteBuddy-based method tracing library extracted from Roborazzi. This library provides dynamic method instrumentation and tracing capabilities for JVM and Android applications.
+**Simple, powerful method tracing for JVM and Android**
 
-## Features
+See exactly what your code is doing with clean, visual method traces. Perfect for debugging, understanding complex codebases, and visualizing execution flow.
 
-- **Dynamic Method Tracing**: Automatically trace method calls with entry/exit logging
-- **Configurable Filtering**: Include/exclude packages and methods
-- **Argument & Return Value Logging**: Capture method parameters and return values
-- **Nested Call Visualization**: Indent output to show call hierarchy
-- **JUnit Integration**: Easy integration with JUnit tests via `MethodTraceRule`
-- **Android/Robolectric Support**: Works in Android unit tests with Robolectric
+## ✨ Features
 
-## Quick Start
+- 🎯 **Zero-config tracing** - Works out of the box with JUnit
+- 🎨 **Beautiful output** - Visual arrows show method entry/exit 
+- 🔧 **Flexible filtering** - Trace only what you care about
+- 📱 **Android support** - Works with Robolectric tests
+- ⚡ **Lightweight** - Minimal overhead, maximum insight
 
-### Basic Usage with JUnit
+## 🚀 Quick Start
+
+Add one line to see method traces in your tests:
 
 ```kotlin
 class MyTest {
     @get:Rule
-    val methodTraceRule = MethodTraceRule.builder()
-        .packageIncludes("com.example.myapp")
-        .packageExcludes("android", "androidx")
-        .showArguments(true)
-        .showReturns(true)
-        .build()
+    val tracer = CodePathTracerRule.builder().build()
     
-    @Test
-    fun testWithTracing() {
-        val calculator = Calculator()
-        val result = calculator.add(10, 5) // This will be traced
-        assertEquals(15, result)
+    @Test 
+    fun testCalculator() {
+        val calc = Calculator()
+        calc.add(10, 5)  // ← This gets traced automatically!
     }
 }
 ```
 
-### Expected Output
-
+**Output:**
 ```
-[MethodTrace] → ENTERING: Calculator.add(arg0=10, arg1=5)
-[MethodTrace] ← EXITING: Calculator.add -> 15
+→ Calculator.add(2)
+← Calculator.add
 ```
 
-## Project Structure
+## 🎨 Custom Formatting
 
-- `code-path-tracer/`: Core library with ByteBuddy agent and tracing logic
-- `sample-robolectric/`: Android library module with Robolectric test examples
+Want different symbols? Easy!
 
-## Development
+```kotlin
+@get:Rule
+val tracer = CodePathTracerRule.builder()
+    .filter { event -> event.className.contains("Calculator") }
+    .formatter { event -> 
+        when (event) {
+            is TraceEvent.Enter -> "➤ ${event.fullMethodName}(${event.args.size})"
+            is TraceEvent.Exit -> "⬅ ${event.fullMethodName} = ${event.returnValue}"
+        }
+    }
+    .build()
+```
 
-This project uses [Gradle](https://gradle.org/) with multi-module setup.
+## 🎛️ Advanced Usage
 
-### Build Commands
+### DSL API (Alternative to JUnit Rule)
 
-* Run `./gradlew build` to build all modules
-* Run `./gradlew check` to run all tests
-* Run `./gradlew clean` to clean build outputs
-* Run `./debug-trace.sh` to run debug trace tests and see filtered output
+```kotlin
+// One-off tracing
+codePathTrace {
+    calculator.complexCalculation(5, 3)
+}
 
-### Debug Tracing
+// With custom config
+codePathTrace({ 
+    filter { it.className.contains("MyClass") }
+    formatter { "📍 ${it.fullMethodName}" }
+}) {
+    myService.doSomething()
+}
+```
 
-Use the provided debug script to quickly verify method tracing:
+### Filtering Examples
+
+```kotlin
+// Trace only your app code
+.filter { event -> event.className.startsWith("com.mycompany") }
+
+// Skip common methods
+.filter { event -> 
+    !listOf("toString", "hashCode", "equals").contains(event.methodName)
+}
+
+// Focus on specific depth levels
+.filter { event -> event.depth < 3 }
+```
+
+## 🏃‍♂️ Quick Verification
+
+Verify everything works:
 
 ```bash
 ./debug-trace.sh
 ```
 
-This script runs the test and filters output to show only the important trace logs, making it easy to verify that method instrumentation is working correctly.
+This checks that method tracing works across:
+- ✅ Project code (MainActivity.onCreate)  
+- ✅ Library code (SnapshotThreadLocal.get)
+- ✅ Android Framework (PhoneWindow.getPanelState)
 
-### Module Testing
+## 🛠️ Development
 
-* Run `./gradlew sample-robolectric:testDebugUnitTest` for Android/Robolectric tests
+```bash
+./gradlew build              # Build everything
+./gradlew :code-path-tracer:test  # Run core tests  
+./debug-trace.sh             # Verify tracing works
+```
 
-## Technical Details
+---
 
-- Uses ByteBuddy for dynamic code instrumentation
-- Implements Java Instrumentation API for class transformation
-- Thread-safe depth tracking for nested method calls
-- Configurable argument/return value length limits
-- Automatic exclusion of framework and tracing-related classes
-
-Note: This project uses the Gradle Wrapper (`./gradlew`) which is the recommended approach for production projects.
+*Built with ByteBuddy • Made for developers who care about understanding their code*

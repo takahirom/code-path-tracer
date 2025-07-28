@@ -9,7 +9,7 @@ class JvmMethodTraceTest {
     
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
-        .filter { event -> event.className.startsWith("io.github.takahirom.codepathtracer.sample") }
+        .filter { event -> event.className.contains("JvmMethodTraceTest") }
         .formatter { event -> 
             when (event) {
                 is TraceEvent.Enter -> "➤ ${event.className}.${event.methodName}(${event.args.size})"
