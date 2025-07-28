@@ -41,7 +41,6 @@ data class TraceEvent(
         
 }
 
-// Default filter and formatter objects to avoid lambda anonymous classes
 object DefaultFilter {
     fun filter(event: TraceEvent): Boolean = true
 }
@@ -123,25 +122,6 @@ class MethodTraceRule private constructor(
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
         fun typeFilter(predicate: (String) -> Boolean) = apply { typeFilter = predicate }
         
-        // Convenience methods for common patterns
-        fun packageIncludes(vararg packages: String) = apply {
-            filter = { event -> packages.any { event.className.startsWith(it) } }
-        }
-        
-        fun packageExcludes(vararg packages: String) = apply {
-            val currentFilter = filter
-            filter = { event -> currentFilter(event) && packages.none { event.className.contains(it) } }
-        }
-        
-        fun methodExcludes(vararg methods: String) = apply {
-            val currentFilter = filter
-            filter = { event -> currentFilter(event) && event.methodName !in methods }
-        }
-        
-        fun maxDepth(depth: Int) = apply {
-            val currentFilter = filter
-            filter = { event -> currentFilter(event) && event.depth <= depth }
-        }
         
         fun build() = MethodTraceRule(Config(filter, formatter, enabled))
     }
