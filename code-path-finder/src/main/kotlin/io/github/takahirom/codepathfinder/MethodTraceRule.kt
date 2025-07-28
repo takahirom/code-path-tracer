@@ -40,25 +40,6 @@ data class TraceEvent(
         return "$indent→ $fullMethodName(${args.size})"
     }
     
-    /**
-     * Minimal formatting showing only method name.
-     */
-    fun minimal(): String = methodName
-    
-    /**
-     * Detailed formatting with arguments and return value.
-     */
-    fun detailed(): String {
-        val argsStr = if (args.isEmpty()) "" else "(${args.joinToString { it?.toString()?.take(10) ?: "null" }})"
-        val returnStr = returnValue?.let { " -> ${it.toString().take(20)}" } ?: ""
-        return "$fullMethodName$argsStr$returnStr"
-    }
-    
-    /**
-     * Indented formatting for call hierarchy visualization.
-     */
-    fun indented(): String = 
-        "${" ".repeat(depth)}→ $fullMethodName(${args.size})"
         
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
