@@ -38,13 +38,7 @@ allprojects {
     project.group = "io.github.takahirom.codepathtracer"
     mavenPublishing {
       publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-      // Only sign if signing properties are available
-      def hasSigningKey = project.hasProperty('signing.keyId') || 
-                         project.hasProperty('signing.key') || 
-                         System.getenv("SIGNING_KEY_ID") != null
-      if (hasSigningKey) {
-        signAllPublications()
-      }
+      signAllPublications()
     }
 
     plugins.withId('maven-publish') {
