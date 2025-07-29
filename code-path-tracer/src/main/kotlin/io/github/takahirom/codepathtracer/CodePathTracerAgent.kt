@@ -206,7 +206,13 @@ object CodePathTracerAgent {
         "sun.",
         "com.sun.",
         "android.util.DebugUtils",
-        "io.github.takahirom.codepathtracer."
+        "io.github.takahirom.codepathtracer.",
+        // IntelliJ IDEA debugger agent classes
+        "com.intellij.rt.debugger.",
+        "com.intellij.rt.execution.",
+        // JetBrains debugger and profiler agents
+        "com.jetbrains.jps.",
+        "org.jetbrains.jps."
     )
     
     /**
