@@ -42,6 +42,11 @@ jobs:
       - name: Run tests before publishing
         run: ./gradlew build --stacktrace
 
+      - name: Set version from tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "VERSION_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+
       - name: Set version for manual dispatch
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
         run: |
@@ -59,7 +64,7 @@ jobs:
           max_attempts: 3
           retry_on: error
           timeout_minutes: 20
-          command: ./gradlew :code-path-tracer:publish --rerun-tasks --stacktrace --no-configuration-cache
+          command: ./gradlew :code-path-tracer:publish --rerun-tasks --stacktrace --no-configuration-cache -PVERSION_NAME=${VERSION_NAME:-}
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
