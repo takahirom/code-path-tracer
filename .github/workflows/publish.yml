@@ -81,12 +81,6 @@ jobs:
             }
             ```
             
-            ### Features
-            - 🧭 Visual method tracing for JVM and Android applications
-            - 🎯 Zero-config tracing with beautiful visual output
-            - 🔧 Flexible filtering and custom formatting
-            - ✅ Robolectric support for Android testing
-            
             Full Changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
           draft: false
           prerelease: false
