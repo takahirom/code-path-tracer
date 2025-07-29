@@ -81,6 +81,6 @@ jobs:
             }
             ```
             
-            Full Changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
+            Full Changelog: https://github.com/takahirom/code-path-tracer/commits/${{ github.ref_name }}
           draft: false
           prerelease: false
