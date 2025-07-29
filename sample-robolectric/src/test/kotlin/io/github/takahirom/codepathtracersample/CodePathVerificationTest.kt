@@ -113,20 +113,24 @@ class CodePathVerificationTest {
         val controller = Robolectric.buildActivity(MainActivity::class.java)
         val activity = controller.create().start().resume().get()
         
-        println("\n🎯 Simulating button click with tracing...")
-        
-        codePathTrace({
-            filter { event ->
-                if (event.className.contains("MainActivity")) {
-                    capturedEvents.add(event)
-                    println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
-                    true
-                } else false
+        try {
+            println("\n🎯 Simulating button click with tracing...")
+            
+            codePathTrace({
+                filter { event ->
+                    if (event.className.contains("MainActivity")) {
+                        capturedEvents.add(event)
+                        println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
+                        true
+                    } else false
+                }
+            }) {
+                val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
+                button.performClick()
+                println("Button click simulation completed")
             }
-        }) {
-            val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
-            button.performClick()
-            println("Button click simulation completed")
+        } finally {
+            controller.pause().stop().destroy()
         }
         
         println("\nTotal click-related events captured: ${capturedEvents.size}")

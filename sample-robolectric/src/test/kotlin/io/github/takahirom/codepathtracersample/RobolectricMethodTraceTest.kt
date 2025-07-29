@@ -28,23 +28,27 @@ class RobolectricMethodTraceTest {
         // Create Activity Controller
         val controller = Robolectric.buildActivity(MainActivity::class.java)
         
-        // Lifecycle: Create
-        println("Creating activity...")
-        val activity = controller.create().get()
-        
-        // Verify activity is created
-        assert(activity != null)
-        println("Activity created successfully")
-        
-        // Lifecycle: Start
-        println("Starting activity...")
-        controller.start()
-        
-        // Lifecycle: Resume
-        println("Resuming activity...")
-        controller.resume()
-        
-        println("=== Activity lifecycle test completed ===")
+        try {
+            // Lifecycle: Create
+            println("Creating activity...")
+            val activity = controller.create().get()
+            
+            // Verify activity is created
+            assert(activity != null)
+            println("Activity created successfully")
+            
+            // Lifecycle: Start
+            println("Starting activity...")
+            controller.start()
+            
+            // Lifecycle: Resume
+            println("Resuming activity...")
+            controller.resume()
+            
+            println("=== Activity lifecycle test completed ===")
+        } finally {
+            controller.pause().stop().destroy()
+        }
     }
     
     @Test
@@ -81,8 +85,12 @@ class RobolectricMethodTraceTest {
         val controller = Robolectric.buildActivity(MainActivity::class.java)
         val activity = controller.create().start().resume().get()
         
-        val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
-        button.performClick()
+        try {
+            val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
+            button.performClick()
+        } finally {
+            controller.pause().stop().destroy()
+        }
     }
 
     @Test
