@@ -158,15 +158,10 @@ object CodePathTracerAgent {
             // Enable retransformation of already loaded classes
             .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
             .ignore(
-                ElementMatchers.nameStartsWith<NamedElement>("net.bytebuddy.")
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("java."))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("kotlin."))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("org.junit."))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("sun."))
+                ignorePackages().fold(ElementMatchers.none<NamedElement>()) { matcher, pkg ->
+                    matcher.or(ElementMatchers.nameStartsWith<NamedElement>(pkg))
+                }
                     // jdk. causes StackOverflow - do not add
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("com.sun."))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("android.util.DebugUtils"))
-                    .or(ElementMatchers.nameStartsWith<NamedElement>("io.github.takahirom.codepathtracer."))
                     .or(ElementMatchers.nameContains<NamedElement>("\$\$Lambda\$"))
                     .or(ElementMatchers.nameContains<NamedElement>("\$lambda\$"))
                     .or(ElementMatchers.nameContains<NamedElement>("JvmMethodTraceTest\$methodTraceRule\$"))
@@ -174,19 +169,45 @@ object CodePathTracerAgent {
             .type(ElementMatchers.not(ElementMatchers.isInterface())
                 .and(ElementMatchers.not(ElementMatchers.isAbstract()))
                 .and(ElementMatchers.not(ElementMatchers.isSynthetic())))
-            .transform(
-                AgentBuilder.Transformer.ForAdvice()
-                    .advice(
-                        ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                            .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
-                            // Include constructors for tracing
-                        MethodTraceAdvice::class.java.name
+            .transform { builder, typeDescription, classLoader, module ->
+                // Check if this is being loaded by Robolectric's AndroidSandbox
+                val isRobolectricSandbox = classLoader?.javaClass?.name?.contains("AndroidSandbox") == true ||
+                                          classLoader?.javaClass?.name?.contains("SdkSandboxClassLoader") == true
+                
+                if (isRobolectricSandbox) {
+                    if (CodePathTracer.DEBUG) {
+                        println("[MethodTrace] Skipping transformation for Robolectric class: ${typeDescription.name}")
+                    }
+                    // Return the class unchanged for Robolectric classes
+                    builder
+                } else {
+                    // Apply normal transformation for non-Robolectric classes
+                    builder.visit(
+                        net.bytebuddy.asm.Advice.to(MethodTraceAdvice::class.java)
+                            .on(ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
+                                .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())))
                     )
-            )
+                }
+            }
     }
 
     @Synchronized
     fun getConfig(): CodePathTracer.Config? = config
+    
+    /**
+     * Common list of package prefixes to ignore during tracing
+     */
+    private fun ignorePackages(): List<String> = listOf(
+        "net.bytebuddy.",
+        "java.",
+        "kotlin.",
+        "kotlinx.",
+        "org.junit.",
+        "sun.",
+        "com.sun.",
+        "android.util.DebugUtils",
+        "io.github.takahirom.codepathtracer."
+    )
     
     /**
      * Auto-detect classes that should be retransformed for tracing
@@ -233,14 +254,7 @@ object CodePathTracerAgent {
     }
     
     private fun wouldBeIgnored(className: String): Boolean {
-        return className.startsWith("net.bytebuddy.") ||
-               className.startsWith("java.") ||
-               className.startsWith("kotlin.") ||
-               className.startsWith("org.junit.") ||
-               className.startsWith("sun.") ||
-               className.startsWith("com.sun.") ||
-               className.startsWith("android.util.DebugUtils") ||
-               className.startsWith("io.github.takahirom.codepathtracer.") ||
+        return ignorePackages().any { className.startsWith(it) } ||
                className.contains("\$\$Lambda\$") ||
                className.contains("\$lambda\$") ||
                className.contains("JvmMethodTraceTest\$methodTraceRule\$")
@@ -301,6 +315,12 @@ object CodePathTracerAgent {
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy transformer reset failed: ${e.message}")
         }
+        
+        // Force reset initialization state to allow re-initialization 
+        isInitialized = false
+        resettableTransformer = null
+        
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Agent reset completed - ready for re-initialization")
     }
 
 }

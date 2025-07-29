@@ -87,5 +87,16 @@ class MethodTraceAdvice {
             depthCounter.remove()
             isTracing.remove()
         }
+        
+        /**
+         * Force cleanup all ThreadLocal variables across all threads
+         * Useful for test environments where coroutines might leave traces
+         */
+        @JvmStatic
+        fun forceCleanupAllThreads() {
+            cleanup()
+            // Force GC to clean up any remaining ThreadLocal references
+            System.gc()
+        }
     }
 }

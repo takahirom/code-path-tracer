@@ -38,7 +38,7 @@ allprojects {
     project.group = "io.github.takahirom.codepathtracer"
     mavenPublishing {
       publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-      signAllPublications()
+//      signAllPublications()
     }
 
     plugins.withId('maven-publish') {
