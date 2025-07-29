@@ -3,7 +3,8 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-byteBuddy = "1.17.6"
+# https://github.com/raphw/byte-buddy/?tab=readme-ov-file#java-version-compatibility
+byteBuddy = "1.10.19"
 junit = "4.13.2"
 kotlin = "1.9.22"
 kotlinxDatetime = "0.6.1"
