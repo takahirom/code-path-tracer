@@ -1,10 +1,11 @@
 package io.github.takahirom.codepathtracer
 
 /**
- * Static class for ByteBuddy Advice
+ * ByteBuddy advice for method tracing
  */
 class MethodTraceAdvice {
     companion object {
+        
         private val depthCounter = ThreadLocal.withInitial { 0 }
         private val isTracing = ThreadLocal.withInitial { false }
         

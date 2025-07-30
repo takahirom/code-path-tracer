@@ -10,9 +10,15 @@ import org.junit.Test
 
 class JvmMethodTraceTest {
     
+    // Field to capture events for verification
+    private val capturedEvents = mutableListOf<TraceEvent>()
+    
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event -> 
+            // Capture events for verification
+            capturedEvents.add(event)
+            
             // Trace everything with sample in name, including inner class style names
             event.className.contains("Sample") || 
             event.className.contains("sample") ||
@@ -31,6 +37,14 @@ class JvmMethodTraceTest {
     fun testBusinessLogicWithTrace() {
         println("=== Testing Business Logic with Method Trace ===")
         
+        // Clear any previous events
+        capturedEvents.clear()
+        
+        // Verify agent config
+        CodePathTracerAgent.getConfig()?.let { config ->
+            println("Current trace config found: $config")
+        } ?: println("⚠️ No trace config found")
+        
         val calculator = TestCalculator("BusinessCalculator")
         
         // Test addition
@@ -47,6 +61,13 @@ class JvmMethodTraceTest {
         val result3 = calculator.complexCalculation(5, 3)
         println("Complex calculation result: $result3")
         assert(result3 == 28) // (5 + 3) * 2 + 12
+        
+        // Verify tracing is working
+        println("Rule captured ${capturedEvents.size} events")
+        assert(capturedEvents.isNotEmpty()) { "Expected trace events" }
+        
+        val calculatorEvents = capturedEvents.filter { it.className.contains("TestCalculator") }
+        assert(calculatorEvents.isNotEmpty()) { "Expected TestCalculator events" }
         
         println("=== Business logic test completed ===")
     }
