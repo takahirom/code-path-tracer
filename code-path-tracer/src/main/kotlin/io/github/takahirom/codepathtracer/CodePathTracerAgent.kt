@@ -47,7 +47,6 @@ object CodePathTracerAgent {
 
             resettableTransformer = agentBuilder
                 .installOnByteBuddyAgent()
-            if (CodePathTracer.DEBUG) println("[MethodTrace] AgentBuilder installed on instrumentation")
             
             // Auto-detect and retransform already loaded classes that might need tracing
             if (config.autoRetransform) {
@@ -71,7 +70,6 @@ object CodePathTracerAgent {
             }
 
             isInitialized = true
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Agent initialization completed successfully")
 
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) {
@@ -86,7 +84,6 @@ object CodePathTracerAgent {
 
     @Suppress("NewApi")
     private fun createAgentBuilder(config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
-        if (CodePathTracer.DEBUG) println("[MethodTrace] createAgentBuilder called with config: $config")
         val temp = Files.createTempDirectory("code-path-tracer-").toFile()
         try {
             injectRequiredClasses(temp, instrumentation)
@@ -265,15 +262,12 @@ object CodePathTracerAgent {
      */
     @Synchronized
     fun reset() {
-        if (CodePathTracer.DEBUG) println("[MethodTrace] Resetting configuration")
         config = null
         
         // Clean up ThreadLocal variables to prevent memory leaks
         try {
             MethodTraceAdvice.cleanup()
-            if (CodePathTracer.DEBUG) println("[MethodTrace] ThreadLocal variables cleaned up")
         } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] ThreadLocal cleanup failed: ${e.message}")
         }
         
         // Reset the ByteBuddy transformer
@@ -290,14 +284,12 @@ object CodePathTracerAgent {
                 }
             }
         } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy transformer reset failed: ${e.message}")
         }
         
         // Force reset initialization state to allow re-initialization 
         isInitialized = false
         resettableTransformer = null
         
-        if (CodePathTracer.DEBUG) println("[MethodTrace] Agent reset completed - ready for re-initialization")
     }
 
 }

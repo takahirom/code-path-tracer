@@ -14,7 +14,6 @@ class RobolectricByteBuddyTest {
     
     @Test
     fun testByteBuddyWorksInRobolectric() {
-        println("🔍 Testing ByteBuddy in Robolectric environment")
         
         val capturedEvents = mutableListOf<TraceEvent>()
         
@@ -39,17 +38,11 @@ class RobolectricByteBuddyTest {
             }
         }
         
-        println("Total events captured: ${capturedEvents.size}")
-        if (capturedEvents.isNotEmpty()) {
-            println("✅ ByteBuddy works in Robolectric!")
-        } else {
-            println("❌ ByteBuddy does NOT work in Robolectric")
-        }
+        assert(capturedEvents.isNotEmpty()) { "ByteBuddy should work in Robolectric" }
     }
     
     @Test
     fun testMainActivityDirectly() {
-        println("🔍 Testing MainActivity directly (no Robolectric controller)")
         
         val capturedEvents = mutableListOf<TraceEvent>()
         val mainActivityEvents = mutableListOf<TraceEvent>()
@@ -81,16 +74,6 @@ class RobolectricByteBuddyTest {
             }
         }
         
-        println("Total events captured: ${capturedEvents.size}")
-        println("MainActivity events captured: ${mainActivityEvents.size}")
-        
-        if (mainActivityEvents.isNotEmpty()) {
-            println("✅ MainActivity methods are traceable!")
-            mainActivityEvents.forEach { event ->
-                println("  - ${event.className}.${event.methodName}")
-            }
-        } else {
-            println("❌ MainActivity methods are NOT traceable")
-        }
+        assert(mainActivityEvents.isNotEmpty()) { "MainActivity methods should be traceable" }
     }
 }
