@@ -162,16 +162,14 @@ object CodePathTracerAgent {
         // In Robolectric sandbox environments, exclude problematic android classes that cause AccessError
         // These are classes that Robolectric's Reflectors cannot access due to ClassLoader isolation
         return if (isRobolectricSandboxEnvironment()) {
-            println("[MethodTrace] Robolectric sandbox detected - excluding problematic android classes to avoid AccessError")
             basePackages + listOf(
-                "android.view.View\$AttachInfo",                           // View hierarchy access issues
-                "android.hardware.display.ColorDisplayManager",           // Display manager access issues  
-                "android.hardware.display.",                               // All display hardware classes
-                "android.view.ViewRootImpl",                              // View root implementation issues
-                "android.view.Choreographer"                              // Animation/drawing coordination issues
+                "android.view.View\$AttachInfo",
+                "android.hardware.display.ColorDisplayManager",
+                "android.hardware.display.",
+                "android.view.ViewRootImpl",
+                "android.view.Choreographer"
             )
         } else {
-            println("[MethodTrace] Normal environment - all android.* packages will be traced")
             basePackages
         }
     }
@@ -253,33 +251,11 @@ object CodePathTracerAgent {
     
     private fun isRobolectricSandboxEnvironment(): Boolean {
         return try {
-            // Check if we're currently running inside a Robolectric sandbox
             val contextClassLoader = Thread.currentThread().contextClassLoader
-            if (contextClassLoader != null) {
-                val classLoaderName = contextClassLoader.toString()
-                println("[MethodTrace] Checking ClassLoader: $classLoaderName")
-                if (classLoaderName.contains("AndroidSandbox") || 
-                    classLoaderName.contains("SdkSandboxClassLoader")) {
-                    println("[MethodTrace] Robolectric sandbox ClassLoader detected")
-                    return true
-                }
-            }
-            
-            // Check stack trace for active Robolectric sandbox execution
-            val stackTrace = Thread.currentThread().stackTrace
-            for (frame in stackTrace) {
-                if (frame.className.contains("AndroidSandbox") ||
-                    frame.className.contains("SandboxTestRunner") ||
-                    frame.className.contains("robolectric.internal.bytecode.Sandbox")) {
-                    println("[MethodTrace] Robolectric sandbox in stack trace: ${frame.className}")
-                    return true
-                }
-            }
-            
-            println("[MethodTrace] No Robolectric sandbox detected")
-            false
+            contextClassLoader?.toString()?.let { classLoaderName ->
+                classLoaderName.contains("AndroidSandbox") || classLoaderName.contains("SdkSandboxClassLoader")
+            } ?: false
         } catch (e: Exception) {
-            println("[MethodTrace] Error in sandbox detection: ${e.message}")
             false
         }
     }
