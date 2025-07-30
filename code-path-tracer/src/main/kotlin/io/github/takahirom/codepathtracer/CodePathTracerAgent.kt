@@ -181,12 +181,14 @@ object CodePathTracerAgent {
                     // Return the class unchanged for Robolectric classes
                     builder
                 } else {
-                    // Apply normal transformation for non-Robolectric classes
-                    builder.visit(
-                        net.bytebuddy.asm.Advice.to(MethodTraceAdvice::class.java)
-                            .on(ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                                .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())))
-                    )
+                    // Apply ForAdvice transformation for non-Robolectric classes  
+                    AgentBuilder.Transformer.ForAdvice()
+                        .advice(
+                            ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
+                                .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
+                            MethodTraceAdvice::class.java.name
+                        )
+                        .transform(builder, typeDescription, classLoader, module)
                 }
             }
     }

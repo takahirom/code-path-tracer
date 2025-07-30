@@ -10,9 +10,15 @@ import org.junit.Test
 
 class JvmMethodTraceTest {
     
+    // Field to capture events for verification
+    private val capturedEvents = mutableListOf<TraceEvent>()
+    
     @get:Rule
     val methodTraceRule = CodePathTracerRule.builder()
         .filter { event -> 
+            // Capture events for verification
+            capturedEvents.add(event)
+            
             // Trace everything with sample in name, including inner class style names
             event.className.contains("Sample") || 
             event.className.contains("sample") ||
@@ -31,6 +37,14 @@ class JvmMethodTraceTest {
     fun testBusinessLogicWithTrace() {
         println("=== Testing Business Logic with Method Trace ===")
         
+        // Clear any previous events
+        capturedEvents.clear()
+        
+        // Verify agent config
+        CodePathTracerAgent.getConfig()?.let { config ->
+            println("Current trace config found: $config")
+        } ?: println("⚠️ No trace config found")
+        
         val calculator = TestCalculator("BusinessCalculator")
         
         // Test addition
@@ -47,6 +61,27 @@ class JvmMethodTraceTest {
         val result3 = calculator.complexCalculation(5, 3)
         println("Complex calculation result: $result3")
         assert(result3 == 28) // (5 + 3) * 2 + 12
+        
+        // Check if Rule captured any events
+        println("📊 Rule captured ${capturedEvents.size} total trace events:")
+        capturedEvents.take(10).forEach { event ->
+            println("  - $event")
+        }
+        if (capturedEvents.size > 10) {
+            println("  ... and ${capturedEvents.size - 10} more events")
+        }
+        
+        // Assert that tracing is actually working
+        assert(capturedEvents.isNotEmpty()) { 
+            "🚨 TRACING NOT WORKING: Expected Rule to capture trace events but got ${capturedEvents.size}" 
+        }
+        
+        // Verify we captured events from TestCalculator
+        val calculatorEvents = capturedEvents.filter { it.className.contains("TestCalculator") }
+        println("📊 TestCalculator events: ${calculatorEvents.size}")
+        assert(calculatorEvents.isNotEmpty()) {
+            "🚨 Expected to capture TestCalculator events but got ${calculatorEvents.size}"
+        }
         
         println("=== Business logic test completed ===")
     }
