@@ -39,15 +39,11 @@ object CodePathTracerAgent {
 
         // Enable ByteBuddy experimental features
         System.setProperty("net.bytebuddy.experimental", "true")
-        if (CodePathTracer.DEBUG) println("[MethodTrace] Set ByteBuddy experimental property")
 
         try {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Getting instrumentation from ByteBuddyAgent...")
             val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Using instrumentation: $instrumentation")
 
             val agentBuilder = createAgentBuilder(config, instrumentation)
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
 
             resettableTransformer = agentBuilder
                 .installOnByteBuddyAgent()
@@ -128,22 +124,14 @@ object CodePathTracerAgent {
             .type(ElementMatchers.not(ElementMatchers.isInterface())
                 .and(ElementMatchers.not(ElementMatchers.isAbstract()))
                 .and(ElementMatchers.not(ElementMatchers.isSynthetic())))
-            .transform { builder, typeDescription, classLoader, module, protectionDomain ->
-                val className = typeDescription.name
-                val classLoaderName = classLoader?.javaClass?.name ?: "null"
-                
-                if (CodePathTracer.DEBUG) {
-                    println("[MethodTrace] Transforming class: $className (ClassLoader: $classLoaderName)")
-                }
-                // Apply ForAdvice transformation for all classes (temporarily disable Robolectric logic)
+            .transform(
                 AgentBuilder.Transformer.ForAdvice()
                     .advice(
                         ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
                             .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
                         MethodTraceAdvice::class.java.name
                     )
-                    .transform(builder, typeDescription, classLoader, module, protectionDomain)
-            }
+            )
     }
 
     @Synchronized
