@@ -20,3 +20,14 @@ dependencies {
   
   testImplementation(libs.junit)
 }
+
+// JAR manifest configuration for runtime agent usage
+// Note: No Premain-Class needed as we use ByteBuddyAgent.install() at runtime
+tasks.jar {
+  manifest {
+    attributes(
+      "Can-Retransform-Classes" to "true",  
+      "Can-Redefine-Classes" to "true"
+    )
+  }
+}

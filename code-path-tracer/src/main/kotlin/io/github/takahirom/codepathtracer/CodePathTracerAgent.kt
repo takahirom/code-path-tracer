@@ -3,8 +3,6 @@ package io.github.takahirom.codepathtracer
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.NamedElement
 import net.bytebuddy.description.type.TypeDescription
-import net.bytebuddy.dynamic.ClassFileLocator
-import net.bytebuddy.dynamic.loading.ClassInjector
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.utility.JavaModule
 import java.io.File
@@ -44,9 +42,9 @@ object CodePathTracerAgent {
         if (CodePathTracer.DEBUG) println("[MethodTrace] Set ByteBuddy experimental property")
 
         try {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Installing ByteBuddy agent...")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Getting instrumentation from ByteBuddyAgent...")
             val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
-            if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy agent installed: $instrumentation")
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Using instrumentation: $instrumentation")
 
             val agentBuilder = createAgentBuilder(config, instrumentation)
             if (CodePathTracer.DEBUG) println("[MethodTrace] Created AgentBuilder: $agentBuilder")
@@ -103,49 +101,10 @@ object CodePathTracerAgent {
         return createAgentBuilderInstance()
     }
 
-    private fun injectRequiredClasses(temp: File, instrumentation: Instrumentation) {
-        val classesToInject = mutableMapOf<TypeDescription.ForLoadedType, ByteArray>()
-
-        fun addClassAndDependencies(clazz: Class<*>) {
-            try {
-                val classBytes = ClassFileLocator.ForClassLoader.read(clazz)
-                if (classBytes != null) {
-                    classesToInject[TypeDescription.ForLoadedType(clazz)] = classBytes
-                    if (CodePathTracer.DEBUG) println("[MethodTrace] Added class: ${clazz.name}")
-                } else {
-                    if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to read class bytes for: ${clazz.name}")
-                }
-            } catch (e: Exception) {
-                if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to add class ${clazz.name}: ${e.message}")
-            }
-        }
-
-        addClassAndDependencies(MethodTraceAdvice::class.java)
-        addClassAndDependencies(MethodTraceAdvice.Companion::class.java)
-        addClassAndDependencies(CodePathTracerAgent::class.java)
-        addClassAndDependencies(CodePathTracer.Config::class.java)
-        addClassAndDependencies(TraceEvent::class.java)
-        try {
-            addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFilter"))
-            addClassAndDependencies(Class.forName("io.github.takahirom.codepathtracer.DefaultFormatter"))
-        } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Default filter/formatter classes not found " + e.stackTraceToString())
-        }
-        try {
-            addClassAndDependencies(Class.forName("kotlin.jvm.internal.Intrinsics"))
-        } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Kotlin intrinsics not found " + e.stackTraceToString())
-        }
-
-        try {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Injecting ${classesToInject.size} classes to Bootstrap ClassPath")
-            ClassInjector.UsingInstrumentation
-                .of(temp, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, instrumentation)
-                .inject(classesToInject)
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Successfully injected classes to Bootstrap ClassPath")
-        } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Failed to inject classes: ${e.message}")
-            e.printStackTrace()
+    private fun injectRequiredClasses(@Suppress("UNUSED_PARAMETER") temp: File, @Suppress("UNUSED_PARAMETER") instrumentation: Instrumentation) {
+        // Always skip Bootstrap injection to avoid AccessError with sandbox environments
+        if (CodePathTracer.DEBUG) {
+            println("[MethodTrace] Skipping Bootstrap injection to avoid AccessError with sandbox environments")
         }
     }
 
@@ -169,27 +128,21 @@ object CodePathTracerAgent {
             .type(ElementMatchers.not(ElementMatchers.isInterface())
                 .and(ElementMatchers.not(ElementMatchers.isAbstract()))
                 .and(ElementMatchers.not(ElementMatchers.isSynthetic())))
-            .transform { builder, typeDescription, classLoader, module ->
-                // Check if this is being loaded by Robolectric's AndroidSandbox
-                val isRobolectricSandbox = classLoader?.javaClass?.name?.contains("AndroidSandbox") == true ||
-                                          classLoader?.javaClass?.name?.contains("SdkSandboxClassLoader") == true
+            .transform { builder, typeDescription, classLoader, module, protectionDomain ->
+                val className = typeDescription.name
+                val classLoaderName = classLoader?.javaClass?.name ?: "null"
                 
-                if (isRobolectricSandbox) {
-                    if (CodePathTracer.DEBUG) {
-                        println("[MethodTrace] Skipping transformation for Robolectric class: ${typeDescription.name}")
-                    }
-                    // Return the class unchanged for Robolectric classes
-                    builder
-                } else {
-                    // Apply ForAdvice transformation for non-Robolectric classes  
-                    AgentBuilder.Transformer.ForAdvice()
-                        .advice(
-                            ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
-                                .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
-                            MethodTraceAdvice::class.java.name
-                        )
-                        .transform(builder, typeDescription, classLoader, module)
+                if (CodePathTracer.DEBUG) {
+                    println("[MethodTrace] Transforming class: $className (ClassLoader: $classLoaderName)")
                 }
+                // Apply ForAdvice transformation for all classes (temporarily disable Robolectric logic)
+                AgentBuilder.Transformer.ForAdvice()
+                    .advice(
+                        ElementMatchers.any<net.bytebuddy.description.method.MethodDescription>()
+                            .and(ElementMatchers.not(ElementMatchers.isTypeInitializer())),
+                        MethodTraceAdvice::class.java.name
+                    )
+                    .transform(builder, typeDescription, classLoader, module, protectionDomain)
             }
     }
 
@@ -199,23 +152,41 @@ object CodePathTracerAgent {
     /**
      * Common list of package prefixes to ignore during tracing
      */
-    private fun ignorePackages(): List<String> = listOf(
-        "net.bytebuddy.",
-        "java.",
-        "kotlin.",
-        "kotlinx.",
-        "org.junit.",
-        "sun.",
-        "com.sun.",
-        "android.util.DebugUtils",
-        "io.github.takahirom.codepathtracer.",
-        // IntelliJ IDEA debugger agent classes
-        "com.intellij.rt.debugger.",
-        "com.intellij.rt.execution.",
-        // JetBrains debugger and profiler agents
-        "com.jetbrains.jps.",
-        "org.jetbrains.jps."
-    )
+    private fun ignorePackages(): List<String> {
+        val basePackages = listOf(
+            "net.bytebuddy.",
+            "java.",
+            "kotlin.",
+            "kotlinx.",
+            "org.junit.",
+            "sun.",
+            "com.sun.",
+            "android.util.DebugUtils",
+            "io.github.takahirom.codepathtracer.",
+            // IntelliJ IDEA debugger agent classes
+            "com.intellij.rt.debugger.",
+            "com.intellij.rt.execution.",
+            // JetBrains debugger and profiler agents
+            "com.jetbrains.jps.",
+            "org.jetbrains.jps."
+        )
+        
+        // In Robolectric sandbox environments, exclude problematic android classes that cause AccessError
+        // These are classes that Robolectric's Reflectors cannot access due to ClassLoader isolation
+        return if (isRobolectricSandboxEnvironment()) {
+            println("[MethodTrace] Robolectric sandbox detected - excluding problematic android classes to avoid AccessError")
+            basePackages + listOf(
+                "android.view.View\$AttachInfo",                           // View hierarchy access issues
+                "android.hardware.display.ColorDisplayManager",           // Display manager access issues  
+                "android.hardware.display.",                               // All display hardware classes
+                "android.view.ViewRootImpl",                              // View root implementation issues
+                "android.view.Choreographer"                              // Animation/drawing coordination issues
+            )
+        } else {
+            println("[MethodTrace] Normal environment - all android.* packages will be traced")
+            basePackages
+        }
+    }
     
     /**
      * Auto-detect classes that should be retransformed for tracing
@@ -289,6 +260,40 @@ object CodePathTracerAgent {
                !clazz.name.contains("Lambda") &&
                !clazz.name.contains("lambda") &&
                !clazz.name.contains("methodTraceRule")
+    }
+    
+    
+    private fun isRobolectricSandboxEnvironment(): Boolean {
+        return try {
+            // Check if we're currently running inside a Robolectric sandbox
+            val contextClassLoader = Thread.currentThread().contextClassLoader
+            if (contextClassLoader != null) {
+                val classLoaderName = contextClassLoader.toString()
+                println("[MethodTrace] Checking ClassLoader: $classLoaderName")
+                if (classLoaderName.contains("AndroidSandbox") || 
+                    classLoaderName.contains("SdkSandboxClassLoader")) {
+                    println("[MethodTrace] Robolectric sandbox ClassLoader detected")
+                    return true
+                }
+            }
+            
+            // Check stack trace for active Robolectric sandbox execution
+            val stackTrace = Thread.currentThread().stackTrace
+            for (frame in stackTrace) {
+                if (frame.className.contains("AndroidSandbox") ||
+                    frame.className.contains("SandboxTestRunner") ||
+                    frame.className.contains("robolectric.internal.bytecode.Sandbox")) {
+                    println("[MethodTrace] Robolectric sandbox in stack trace: ${frame.className}")
+                    return true
+                }
+            }
+            
+            println("[MethodTrace] No Robolectric sandbox detected")
+            false
+        } catch (e: Exception) {
+            println("[MethodTrace] Error in sandbox detection: ${e.message}")
+            false
+        }
     }
     
     /**
@@ -369,7 +374,10 @@ class DebugListener : AgentBuilder.Listener {
         loaded: Boolean,
         throwable: Throwable
     ) {
-        if (CodePathTracer.DEBUG) println("[MethodTrace] Error: $typeName - ${throwable.message}")
+        if (CodePathTracer.DEBUG) {
+            println("[MethodTrace] Error: $typeName - ${throwable.message}")
+            throwable.printStackTrace()
+        }
     }
 
     override fun onComplete(

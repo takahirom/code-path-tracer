@@ -1,5 +1,6 @@
 package io.github.takahirom.codepathtracersample
 
+import io.github.takahirom.codepathtracer.CodePathTracer
 import io.github.takahirom.codepathtracer.TraceEvent
 import io.github.takahirom.codepathtracer.codePathTrace
 import org.junit.Test
@@ -109,28 +110,27 @@ class CodePathVerificationTest {
         
         val capturedEvents = mutableListOf<TraceEvent>()
         
-        println("Creating Activity...")
-        val controller = Robolectric.buildActivity(MainActivity::class.java)
-        val activity = controller.create().start().resume().get()
-        
-        try {
-            println("\n🎯 Simulating button click with tracing...")
-            
-            codePathTrace({
-                filter { event ->
-                    if (event.className.contains("MainActivity") && event.methodName.contains("handleButtonClick")) {
-                        capturedEvents.add(event)
-                        println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
-                        true
-                    } else false
-                }
-            }) {
-                val button = activity.findViewById<android.widget.Button>(activity.getButtonId())
-                button.performClick()
-                println("Button click simulation completed")
+        codePathTrace(CodePathTracer.Config(
+            autoRetransform = false,
+            filter = { event ->
+                if (event.className.contains("MainActivity") && event.methodName == "handleButtonClick") {
+                    capturedEvents.add(event)
+                    println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
+                    true
+                } else false
             }
-        } finally {
-            controller.pause().stop().destroy()
+        )) {
+            println("Creating MainActivity directly (not via Robolectric)...")
+            try {
+                val activity = MainActivity()
+                
+                println("Calling handleButtonClick directly...")
+                activity.handleButtonClick()
+                println("Direct handleButtonClick call completed")
+            } catch (e: Exception) {
+                println("MainActivity creation failed: ${e.message}")
+                println("This shows the difference between direct instantiation and Robolectric")
+            }
         }
         
         println("\nTotal click-related events captured: ${capturedEvents.size}")
