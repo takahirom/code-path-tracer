@@ -5,9 +5,7 @@ import net.bytebuddy.description.NamedElement
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.utility.JavaModule
-import java.io.File
 import java.lang.instrument.Instrumentation
-import java.nio.file.Files
 
 // DEBUG flag moved to CodePathTracer.DEBUG
 
@@ -42,8 +40,7 @@ object CodePathTracerAgent {
 
         try {
             val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
-
-            val agentBuilder = createAgentBuilder(config, instrumentation)
+            val agentBuilder = createAgentBuilder()
 
             resettableTransformer = agentBuilder
                 .installOnByteBuddyAgent()
@@ -83,25 +80,7 @@ object CodePathTracerAgent {
 
 
     @Suppress("NewApi")
-    private fun createAgentBuilder(@Suppress("UNUSED_PARAMETER") config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
-        val temp = Files.createTempDirectory("code-path-tracer-").toFile()
-        try {
-            injectRequiredClasses(temp, instrumentation)
-        } finally {
-            // Clean up temporary directory and its contents for security
-            temp.deleteRecursively()
-        }
-        return createAgentBuilderInstance()
-    }
-
-    private fun injectRequiredClasses(@Suppress("UNUSED_PARAMETER") temp: File, @Suppress("UNUSED_PARAMETER") instrumentation: Instrumentation) {
-        // Always skip Bootstrap injection to avoid AccessError with sandbox environments
-        if (CodePathTracer.DEBUG) {
-            println("[MethodTrace] Skipping Bootstrap injection to avoid AccessError with sandbox environments")
-        }
-    }
-
-    private fun createAgentBuilderInstance(): AgentBuilder {
+    private fun createAgentBuilder(): AgentBuilder {
         return AgentBuilder.Default()
             .with(DebugListener())
             .disableClassFormatChanges()
