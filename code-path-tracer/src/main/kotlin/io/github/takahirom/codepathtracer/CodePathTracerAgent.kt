@@ -83,7 +83,7 @@ object CodePathTracerAgent {
 
 
     @Suppress("NewApi")
-    private fun createAgentBuilder(config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
+    private fun createAgentBuilder(@Suppress("UNUSED_PARAMETER") config: CodePathTracer.Config, instrumentation: Instrumentation): AgentBuilder {
         val temp = Files.createTempDirectory("code-path-tracer-").toFile()
         try {
             injectRequiredClasses(temp, instrumentation)

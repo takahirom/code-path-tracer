@@ -57,8 +57,9 @@ class CodePathVerificationTest {
         
         println("\nTotal events captured: ${capturedEvents.size}")
         
-        // Basic verification
-        assert(capturedEvents.isNotEmpty()) { "Expected to capture events" }
+        // Verify one event from each category
+        assert(applicationEvents.isNotEmpty()) { "Expected application events" }
+        assert(frameworkEvents.isNotEmpty()) { "Expected framework events" }
         assert(applicationEvents.any { it.className.contains("MainActivity") }) { 
             "Expected MainActivity events" 
         }
