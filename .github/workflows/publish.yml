@@ -82,7 +82,7 @@ jobs:
             Add to your `build.gradle`:
             ```kotlin
             dependencies {
-                testImplementation("io.github.takahirom:code-path-tracer:${{ github.ref_name }}")
+                testImplementation("io.github.takahirom.codepathtracer:code-path-tracer:${{ github.ref_name }}")
             }
             ```
             
