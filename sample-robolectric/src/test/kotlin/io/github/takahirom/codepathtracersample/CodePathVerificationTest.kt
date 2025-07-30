@@ -118,7 +118,7 @@ class CodePathVerificationTest {
             
             codePathTrace({
                 filter { event ->
-                    if (event.className.contains("MainActivity")) {
+                    if (event.className.contains("MainActivity") && event.methodName.contains("handleButtonClick")) {
                         capturedEvents.add(event)
                         println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
                         true
