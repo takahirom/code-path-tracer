@@ -62,26 +62,12 @@ class JvmMethodTraceTest {
         println("Complex calculation result: $result3")
         assert(result3 == 28) // (5 + 3) * 2 + 12
         
-        // Check if Rule captured any events
-        println("📊 Rule captured ${capturedEvents.size} total trace events:")
-        capturedEvents.take(10).forEach { event ->
-            println("  - $event")
-        }
-        if (capturedEvents.size > 10) {
-            println("  ... and ${capturedEvents.size - 10} more events")
-        }
+        // Verify tracing is working
+        println("Rule captured ${capturedEvents.size} events")
+        assert(capturedEvents.isNotEmpty()) { "Expected trace events" }
         
-        // Assert that tracing is actually working
-        assert(capturedEvents.isNotEmpty()) { 
-            "🚨 TRACING NOT WORKING: Expected Rule to capture trace events but got ${capturedEvents.size}" 
-        }
-        
-        // Verify we captured events from TestCalculator
         val calculatorEvents = capturedEvents.filter { it.className.contains("TestCalculator") }
-        println("📊 TestCalculator events: ${calculatorEvents.size}")
-        assert(calculatorEvents.isNotEmpty()) {
-            "🚨 Expected to capture TestCalculator events but got ${calculatorEvents.size}"
-        }
+        assert(calculatorEvents.isNotEmpty()) { "Expected TestCalculator events" }
         
         println("=== Business logic test completed ===")
     }
