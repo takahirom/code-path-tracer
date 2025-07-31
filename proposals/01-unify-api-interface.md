@@ -127,7 +127,8 @@ class CodePathTracer private constructor(
     }
     
     companion object {
-        fun Builder() = Builder()
+        /** Invoke operator for creating a builder: CodePathTracer.Builder() */
+        operator fun invoke(): Builder = Builder()
     }
 }
 

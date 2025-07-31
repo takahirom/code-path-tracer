@@ -102,9 +102,9 @@ class CodePathTracer private constructor(private val config: Config) {
         }
         
         /**
-         * Create a builder for configuration
+         * Invoke operator for creating a builder: CodePathTracer.Builder()
          */
-        fun Builder(): Builder = Builder()
+        operator fun invoke(): Builder = Builder()
     }
     
     class Builder {
