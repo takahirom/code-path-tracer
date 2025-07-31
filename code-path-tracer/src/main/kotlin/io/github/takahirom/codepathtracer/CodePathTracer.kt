@@ -39,19 +39,7 @@ class CodePathTracer private constructor(private val config: Config) {
      * Execute code with tracing enabled
      */
     fun <T> trace(block: () -> T): T {
-        if (!config.enabled) {
-            return block()
-        }
-        
-        // Initialize agent with config
-        CodePathTracerAgent.initialize(config)
-        
-        return try {
-            block()
-        } finally {
-            // Reset tracing to stop after this block
-            CodePathTracerAgent.reset()
-        }
+        return CodePathTracerCore.executeWithTracing(config, block)
     }
     
     companion object {
