@@ -32,7 +32,7 @@ class CodePathTracer private constructor(private val config: Config) {
         val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
         val maxToStringLength: Int = 30,
         val beforeContextSize: Int = 0,
-        val maxIndentDepth: Int = 40
+        val maxIndentDepth: Int = 60
     )
     
     /**
@@ -112,7 +112,7 @@ class CodePathTracer private constructor(private val config: Config) {
         private var traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) }
         private var maxToStringLength: Int = 30
         private var beforeContextSize: Int = 0
-        private var maxIndentDepth: Int = 40
+        private var maxIndentDepth: Int = 60
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
