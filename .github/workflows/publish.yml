@@ -66,26 +66,3 @@ jobs:
           timeout_minutes: 20
           command: ./gradlew :code-path-tracer:publish --rerun-tasks --stacktrace --no-configuration-cache -PVERSION_NAME=${VERSION_NAME:-}
 
-      - name: Create GitHub Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## What's Changed
-            
-            This release includes the latest improvements to Code Path Tracer.
-            
-            ### Installation
-            
-            Add to your `build.gradle`:
-            ```kotlin
-            dependencies {
-                testImplementation("io.github.takahirom.codepathtracer:code-path-tracer:${{ github.ref_name }}")
-            }
-            ```
-            
-            Full Changelog: https://github.com/takahirom/code-path-tracer/commits/${{ github.ref_name }}
-          draft: false
-          prerelease: false
