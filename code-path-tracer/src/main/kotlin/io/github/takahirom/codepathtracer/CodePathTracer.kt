@@ -122,7 +122,15 @@ class CodePathTracer(private val config: Config) {
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
         fun beforeContextSize(size: Int) = apply { beforeContextSize = size }
         
-        fun build(): Config = Config(filter, formatter, enabled, beforeContextSize = beforeContextSize)
+        fun build(): Config = Config(
+            filter = filter,
+            formatter = formatter, 
+            enabled = enabled,
+            autoRetransform = true,
+            traceEventGenerator = { advice -> defaultTraceEventGenerator(advice) },
+            maxToStringLength = 30,
+            beforeContextSize = beforeContextSize
+        )
     }
 }
 
