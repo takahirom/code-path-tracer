@@ -29,7 +29,7 @@ jobs:
           gradle-version: wrapper
 
       - name: Build project and run tests
-        run: ./gradlew build -q --stacktrace
+        run: ./gradlew build --stacktrace
 
       - name: Upload test results
         if: always()
