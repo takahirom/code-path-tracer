@@ -24,13 +24,33 @@ sealed class TraceEvent {
                 when {
                     obj == null -> "null"
                     obj is Unit -> "Unit"
-                    else -> obj.toString().take(maxLength)
+                    else -> {
+                        val str = obj.toString()
+                        val compressed = compressClassName(str)
+                        compressed.take(maxLength)
+                    }
                 }
             } catch (e: Throwable) {
                 // We need to catch all exception because some objects may throw AssertionError in toString()
                 "error " + e.message.orEmpty().take(maxLength)
             } finally {
                 isToStringCalling.set(false)
+            }
+        }
+        
+        /**
+         * Compress package names in class names
+         * Example: com.github.takahirom.MyClass -> c.g.t.MyClass
+         */
+        private fun compressClassName(str: String): String {
+            // Match pattern like "com.github.takahirom" (2+ package segments)
+            val packagePattern = Regex("""([a-z]+[a-z0-9]*\.){2,}""")
+            
+            return packagePattern.replace(str) { matchResult ->
+                val packageName = matchResult.value
+                // Split by dots and take first character of each segment except the last dot
+                val segments = packageName.dropLast(1).split(".")
+                segments.joinToString(".") { it.take(1) } + "."
             }
         }
     }
