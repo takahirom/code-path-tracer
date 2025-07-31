@@ -7,6 +7,7 @@ class MethodTraceAdvice {
     companion object {
         
         private val depthCounter = ThreadLocal.withInitial { 0 }
+        private val filteredDepthCounter = ThreadLocal.withInitial { 0 }
         private val isTracing = ThreadLocal.withInitial { false }
         
         @JvmStatic
@@ -36,10 +37,17 @@ class MethodTraceAdvice {
                     return
                 }
                 
-                // Format and print (formatter handles enter/exit formatting)
-                val formattedOutput = config.formatter(traceEvent)
+                // Format with filtered depth and print
+                val filteredDepth = filteredDepthCounter.get()
+                val adjustedEvent = when (traceEvent) {
+                    is TraceEvent.Enter -> traceEvent.copy(depth = filteredDepth)
+                    is TraceEvent.Exit -> traceEvent.copy(depth = filteredDepth)
+                }
+                val formattedOutput = config.formatter(adjustedEvent)
                 println(formattedOutput)
+                
                 depthCounter.set(depth + 1)
+                filteredDepthCounter.set(filteredDepth + 1)
             } finally {
                 isTracing.set(false)
             }
@@ -72,8 +80,15 @@ class MethodTraceAdvice {
                     return
                 }
                 
-                // Format and print (formatter handles enter/exit formatting)
-                val formattedOutput = config.formatter(traceEvent)
+                // Format with filtered depth and print
+                val filteredDepth = (filteredDepthCounter.get() ?: 1) - 1
+                filteredDepthCounter.set(maxOf(0, filteredDepth))
+                
+                val adjustedEvent = when (traceEvent) {
+                    is TraceEvent.Enter -> traceEvent.copy(depth = filteredDepth)
+                    is TraceEvent.Exit -> traceEvent.copy(depth = filteredDepth)
+                }
+                val formattedOutput = config.formatter(adjustedEvent)
                 println(formattedOutput)
             } finally {
                 isTracing.set(false)
@@ -86,6 +101,7 @@ class MethodTraceAdvice {
         @JvmStatic
         fun cleanup() {
             depthCounter.remove()
+            filteredDepthCounter.remove()
             isTracing.remove()
         }
     }
