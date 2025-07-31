@@ -31,7 +31,7 @@ object DefaultFilter {
  *     .build()
  * ```
  */
-class CodePathTracerRule private constructor(
+class CodePathTracerRule internal constructor(
     private val config: CodePathTracer.Config
 ) : TestRule {
 
