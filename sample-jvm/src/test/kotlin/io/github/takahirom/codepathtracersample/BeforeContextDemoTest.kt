@@ -1,20 +1,20 @@
 package io.github.takahirom.codepathtracersample
 
-import io.github.takahirom.codepathtracer.CodePathTracerRule
+import io.github.takahirom.codepathtracer.CodePathTracer
 import org.junit.Rule
 import org.junit.Test
 
 class BeforeContextDemoTest {
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event ->
             // Only trace specific target methods to test context
             event.className == "io.github.takahirom.codepathtracersample.BeforeContextDemoTest\$ContextCalculator" &&
             event.methodName == "targetMethod"
         }
         .beforeContextSize(3)  // Show 3 context events before filtered events
-        .build()
+        .asJUnitRule()
     
     @Test
     fun testBeforeContextDemo() {

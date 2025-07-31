@@ -6,17 +6,17 @@ class BeforeContextTest {
     
     @Test
     fun testBeforeContextWithDSL() {
-        // Use DSL approach instead of Rule to avoid ClassCircularityError
-        val config = CodePathTracer.Config(
-            filter = { event ->
+        // Use Builder approach instead of Rule to avoid ClassCircularityError
+        val tracer = CodePathTracer.Builder()
+            .filter { event ->
                 // Only trace specific methods to test context
                 event.className == "io.github.takahirom.codepathtracer.TestContextCalculator" &&
                 (event.methodName == "targetMethod" || event.methodName == "anotherTargetMethod")
-            },
-            beforeContextSize = 2  // Show 2 context events before filtered events
-        )
+            }
+            .beforeContextSize(2)  // Show 2 context events before filtered events
+            .build()
         
-        codePathTrace(config) {
+        codePathTrace(tracer) {
             val calculator = TestContextCalculator()
             
             // This should create several method calls, but only some will pass the filter

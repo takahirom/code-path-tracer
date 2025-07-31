@@ -6,12 +6,12 @@ import org.junit.Test
 class MethodTraceTest {
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event ->
             // Only trace TestCalculator class, avoid inner classes and lambdas
             event.className == "io.github.takahirom.codepathtracer.TestCalculator"
         }
-        .build()
+        .asJUnitRule()
     
     @Test
     fun testMethodTrace() {

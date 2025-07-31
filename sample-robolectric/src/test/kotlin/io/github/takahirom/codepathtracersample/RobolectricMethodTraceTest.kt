@@ -1,6 +1,6 @@
 package io.github.takahirom.codepathtracersample
 
-import io.github.takahirom.codepathtracer.CodePathTracerRule
+import io.github.takahirom.codepathtracer.CodePathTracer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,9 +17,9 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 class RobolectricMethodTraceTest {
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event -> event.className.contains("MainActivity") }
-        .build()
+        .asJUnitRule()
     
     @Test
     fun testActivityCreationWithTrace() {

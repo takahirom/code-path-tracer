@@ -31,30 +31,9 @@ object DefaultFilter {
  *     .build()
  * ```
  */
-class CodePathTracerRule private constructor(
+class CodePathTracerRule internal constructor(
     private val config: CodePathTracer.Config
 ) : TestRule {
-
-
-    companion object {
-        fun builder() = Builder()
-    }
-
-    class Builder {
-        private var filter: (TraceEvent) -> Boolean = { true }
-        private var formatter: (TraceEvent) -> String = { event -> event.defaultFormat() }
-        private var enabled = true
-        private var maxToStringLength = 30
-        private var beforeContextSize = 0
-
-        fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
-        fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
-        fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
-        fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
-        fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
-
-        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled, autoRetransform = true, traceEventGenerator = { advice -> CodePathTracer.defaultTraceEventGenerator(advice) }, maxToStringLength, beforeContextSize))
-    }
 
     override fun apply(base: Statement, description: Description): Statement {
         return object : Statement() {

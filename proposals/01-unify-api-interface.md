@@ -34,108 +34,164 @@ codePathTrace({
 
 ## Proposed Solution
 
-### Unified DSL API
+### Unified Builder API
 
-Replace all three approaches with a single, consistent DSL-based API:
+Based on lessons learned from libraries like Coil, OkHttp, and Retrofit, replace all three approaches with a single, consistent Builder-based API:
 
 ```kotlin
-// Primary API: DSL-based configuration
+// Simple usage with default settings
 codePathTrace {
-    filter { event -> event.className.contains("MyClass") }
-    formatter { event -> "Custom: ${event.methodName}" }
-    maxDepth(5)
-    enabled(true)
-    
-    // Execute traced code
-    execute {
-        myObject.complexMethod()
-    }
+    myObject.complexMethod()
 }
 
-// Alternative: Traditional callback style (for compatibility)
-codePathTrace(
-    filter = { event -> event.className.contains("MyClass") },
-    formatter = { event -> "Custom: ${event.methodName}" }
-) {
+// Custom configuration with Builder
+val customTracer = CodePathTracer.Builder()
+    .filter { event -> event.className.contains("MyClass") }
+    .formatter { event -> "Custom: ${event.methodName}" }
+    .maxDepth(5)
+    .enabled(true)
+    .build()
+
+// Use custom tracer
+codePathTrace(customTracer) {
+    myObject.complexMethod()
+}
+
+// Direct builder usage (also supported)
+customTracer.trace {
     myObject.complexMethod()
 }
 
 // JUnit Rule integration
 @get:Rule
-val traceRule = codePathTrace.asJUnitRule {
-    filter { event -> event.className.contains("MyClass") }
-    formatter { event -> "Custom: ${event.methodName}" }
-}
+val traceRule = CodePathTracer.Builder()
+    .filter { event -> event.className.contains("MyClass") }
+    .formatter { event -> "Custom: ${event.methodName}" }
+    .asJUnitRule()
 ```
 
 ### Benefits
 
-1. **Consistency**: Single API style across all use cases
-2. **Discoverability**: IDE auto-completion works better with DSL
-3. **Readability**: Configuration and execution are clearly separated
-4. **Extensibility**: Easy to add new configuration options
-5. **Type Safety**: Kotlin DSL provides compile-time checking
+Based on Coil's experience and industry best practices:
+
+1. **Improved IDE Support**: Smaller scope means faster, more accurate autocomplete
+2. **Clear Separation**: Configuration vs execution phases are explicitly separated
+3. **Type Safety**: Builder pattern allows progressive type refinement through method chaining
+4. **Java Compatibility**: Fully compatible with Java consumers
+5. **Factory Pattern**: Supports instance reuse and `newBuilder()` style copying
+6. **Industry Standard**: Consistent with OkHttp, Retrofit, and other major libraries
+7. **Simple Default Usage**: `codePathTrace { }` works with no configuration needed
+8. **Flexible Integration**: Can use default tracer or custom tracer with same API
 
 ## Implementation Plan
 
-### Phase 1: Introduce Unified DSL
+### Phase 1: Implement Builder Pattern
 
-Create new unified API while maintaining backward compatibility:
+Create new unified Builder API while maintaining backward compatibility:
 
 ```kotlin
-// New primary API
-class CodePathTraceBuilder {
-    private var filter: (TraceEvent) -> Boolean = DefaultFilter::filter
-    private var formatter: (TraceEvent) -> String = DefaultFormatter::format
-    private var enabled: Boolean = true
-    private var maxDepth: Int = Int.MAX_VALUE
+// New primary API - following Coil's approach
+class CodePathTracer private constructor(private val config: Config) {
     
-    fun filter(predicate: (TraceEvent) -> Boolean) { this.filter = predicate }
-    fun formatter(fn: (TraceEvent) -> String) { this.formatter = fn }
-    fun enabled(value: Boolean) { this.enabled = value }
-    fun maxDepth(depth: Int) { this.maxDepth = depth }
+    data class Config(
+        val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
+        val formatter: (TraceEvent) -> String = DefaultFormatter::format,
+        val enabled: Boolean = true,
+        val autoRetransform: Boolean = true,
+        val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
+        val maxToStringLength: Int = 30,
+        val beforeContextSize: Int = 0
+    )
     
-    fun <T> execute(block: () -> T): T {
+    class Builder {
+        private var filter: (TraceEvent) -> Boolean = DefaultFilter::filter
+        private var formatter: (TraceEvent) -> String = DefaultFormatter::format
+        private var enabled: Boolean = true
+        private var autoRetransform: Boolean = true
+        private var traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) }
+        private var maxToStringLength: Int = 30
+        private var beforeContextSize: Int = 0
+        
+        fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
+        fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
+        fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
+        fun autoRetransform(autoRetransform: Boolean) = apply { this.autoRetransform = autoRetransform }
+        fun traceEventGenerator(generator: (AdviceData) -> TraceEvent?) = apply { this.traceEventGenerator = generator }
+        fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
+        fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
+        
+        fun build(): CodePathTracer = CodePathTracer(Config(
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
+        ))
+        
+        fun asJUnitRule(): CodePathTracerRule = CodePathTracerRule(Config(
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
+        ))
+    }
+    
+    fun <T> trace(block: () -> T): T {
         // Implementation
     }
     
-    internal fun toConfig() = CodePathTracer.Config(filter, formatter, enabled, ...)
+    fun newBuilder(): Builder {
+        return Builder()
+            .filter(config.filter)
+            .formatter(config.formatter)
+            .enabled(config.enabled)
+            .autoRetransform(config.autoRetransform)
+            .traceEventGenerator(config.traceEventGenerator)
+            .maxToStringLength(config.maxToStringLength)
+            .beforeContextSize(config.beforeContextSize)
+    }
+    
 }
 
-// Top-level function
-fun codePathTrace(configure: CodePathTraceBuilder.() -> Unit): CodePathTraceBuilder {
-    return CodePathTraceBuilder().apply(configure)
-}
+// Default tracer instance
+private val DEFAULT_TRACER = CodePathTracer.Builder().build()
 
-// Overload for backward compatibility
+// Primary API - simple usage with default settings
+fun <T> codePathTrace(block: () -> T): T = DEFAULT_TRACER.trace(block)
+
+// Primary API - usage with custom tracer
+fun <T> codePathTrace(tracer: CodePathTracer, block: () -> T): T = tracer.trace(block)
+
+// Backward compatibility function (deprecated)
+@Deprecated("Use CodePathTracer.Builder() instead")
 fun <T> codePathTrace(
     filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
     formatter: (TraceEvent) -> String = DefaultFormatter::format,
     enabled: Boolean = true,
     block: () -> T
 ): T {
-    return codePathTrace {
-        filter(filter)
-        formatter(formatter)
-        enabled(enabled)
-        execute(block)
-    }
+    return CodePathTracer.Builder()
+        .filter(filter)
+        .formatter(formatter)
+        .enabled(enabled)
+        .build()
+        .trace(block)
 }
 ```
 
-### Phase 2: JUnit Rule Integration
+### Phase 2: Instance Reuse and Sharing
+
+Following OkHttp's pattern for instance sharing:
 
 ```kotlin
-// Extension function for JUnit integration
-fun CodePathTraceBuilder.asJUnitRule(): CodePathTracerRule {
-    return CodePathTracerRule(this.toConfig())
-}
+// Shared configuration example
+val baseTracer = CodePathTracer.Builder()
+    .formatter { event -> "Base: ${event.methodName}" }
+    .enabled(true)
+    .build()
 
-// Usage
-@get:Rule
-val traceRule = codePathTrace {
-    filter { event -> event.className.contains("MyClass") }
-}.asJUnitRule()
+// Create variations using newBuilder()
+val testTracer = baseTracer.newBuilder()
+    .filter { event -> event.className.contains("Test") }
+    .build()
+
+val productionTracer = baseTracer.newBuilder()
+    .filter { event -> !event.className.contains("Debug") }
+    .maxDepth(3)
+    .build()
 ```
 
 ### Phase 3: Deprecation Path
@@ -150,47 +206,44 @@ val traceRule = codePathTrace {
 ### Basic Usage
 
 ```kotlin
-// Simple tracing (current: codePathTrace { })
+// Simple tracing with default settings
 codePathTrace {
-    execute {
-        calculator.complexCalculation(5, 3)
-    }
+    calculator.complexCalculation(5, 3)
 }
 
-// With configuration
-codePathTrace {
-    filter { event -> !event.methodName.startsWith("get") }
-    formatter { event -> "➤ ${event.shortClassName}.${event.methodName}" }
+// With custom configuration
+val configuredTracer = CodePathTracer.Builder()
+    .filter { event -> !event.methodName.startsWith("get") }
+    .formatter { event -> "➤ ${event.shortClassName}.${event.methodName}" }
+    .build()
     
-    execute {
-        userService.processUser(user)
-    }
+codePathTrace(configuredTracer) {
+    userService.processUser(user)
 }
 ```
 
 ### Advanced Configuration
 
 ```kotlin
-codePathTrace {
-    filter { event -> 
+val advancedTracer = CodePathTracer.Builder()
+    .filter { event -> 
         event.className.startsWith("com.myapp") && 
-        event.depth < 5
+        event.methodName == "targetMethod"
     }
-    
-    formatter { event ->
+    .formatter { event ->
         when (event) {
             is TraceEvent.Enter -> "→ ${event.fullMethodName}(${event.args.size})"
             is TraceEvent.Exit -> "← ${event.fullMethodName} = ${event.returnValue}"
         }
     }
-    
-    maxDepth(10)
-    enabled(System.getProperty("tracing.enabled") == "true")
-    
-    execute {
-        // Complex business logic here
-        businessLogic.processWorkflow()
-    }
+    .beforeContextSize(3)  // Show 3 context events before filtered events
+    .maxToStringLength(50)
+    .enabled(System.getProperty("tracing.enabled") == "true")
+    .build()
+
+codePathTrace(advancedTracer) {
+    // Complex business logic here
+    businessLogic.processWorkflow()
 }
 ```
 
@@ -199,9 +252,9 @@ codePathTrace {
 ```kotlin
 class MyTest {
     @get:Rule
-    val tracer = codePathTrace {
-        filter { event -> event.className.contains("MyService") }
-    }.asJUnitRule()
+    val tracer = CodePathTracer.Builder()
+        .filter { event -> event.className.contains("MyService") }
+        .asJUnitRule()
     
     @Test
     fun testBusinessLogic() {
@@ -219,15 +272,15 @@ Old code continues to work during transition period:
 
 ```kotlin
 // Old API (still works, but deprecated)
-@Deprecated("Use codePathTrace { }.asJUnitRule() instead")
+@Deprecated("Use CodePathTracer.Builder().asJUnitRule() instead")
 val rule = CodePathTracerRule.builder()
     .filter { ... }
     .build()
 
 // New API
-val rule = codePathTrace {
-    filter { ... }
-}.asJUnitRule()
+val rule = CodePathTracer.Builder()
+    .filter { ... }
+    .asJUnitRule()
 ```
 
 ### Documentation Updates
@@ -245,4 +298,4 @@ This unified API will provide:
 - **Future-proof design** that can accommodate new features seamlessly
 - **Smooth migration path** that doesn't break existing code
 
-The DSL approach aligns with modern Kotlin library design patterns and provides the flexibility needed for both simple and advanced use cases.
+The Builder approach aligns with proven Kotlin library design patterns used by industry leaders like Google, Square, and Facebook, providing a stable foundation for both simple and advanced use cases while ensuring optimal IDE support and maintainability.

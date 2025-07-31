@@ -23,8 +23,8 @@ class CodePathVerificationTest {
         val frameworkEvents = mutableListOf<TraceEvent>()
         val libraryEvents = mutableListOf<TraceEvent>()
         
-        codePathTrace({
-            filter { event ->
+        codePathTrace(CodePathTracer.Builder()
+            .filter { event ->
                 capturedEvents.add(event)
                 
                 when {
@@ -40,7 +40,8 @@ class CodePathVerificationTest {
                 }
                 true
             }
-        }) {
+            .build()
+        ) {
             println("Creating Activity with method tracing...")
             val controller = Robolectric.buildActivity(MainActivity::class.java)
             val activity = controller.create().get()
@@ -74,16 +75,16 @@ class CodePathVerificationTest {
         
         val capturedEvents = mutableListOf<TraceEvent>()
         
-        codePathTrace(CodePathTracer.Config(
-            autoRetransform = false,
-            filter = { event ->
+        codePathTrace(CodePathTracer.Builder()
+            .filter{ event ->
                 if (event.className.contains("MainActivity") && event.methodName == "handleButtonClick") {
                     capturedEvents.add(event)
                     println("${if (event is TraceEvent.Enter) "→" else "←"} ${event.shortClassName}.${event.methodName}")
                     true
                 } else false
             }
-        )) {
+            .build()
+        ) {
             println("Creating MainActivity directly (not via Robolectric)...")
             try {
                 val activity = MainActivity()
