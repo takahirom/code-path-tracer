@@ -97,11 +97,11 @@ sealed class TraceEvent {
     /**
      * Default formatting for trace events with configurable indent limits.
      */
-    fun defaultFormat(maxLength: Int = 30): String {
-        val indent = if (depth < 40) {
+    fun defaultFormat(maxLength: Int = 30, maxIndentDepth: Int = 60): String {
+        val indent = if (depth < maxIndentDepth) {
             "  ".repeat(depth)
         } else {
-            " ".repeat(40) + "${depth}⇢"
+            " ".repeat(maxIndentDepth) + "${depth}⇢"
         }
         return when (this) {
             is Enter -> {

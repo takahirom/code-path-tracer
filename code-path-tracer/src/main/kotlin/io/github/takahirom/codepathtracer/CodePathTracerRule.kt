@@ -38,29 +38,11 @@ class CodePathTracerRule internal constructor(
     override fun apply(base: Statement, description: Description): Statement {
         return object : Statement() {
             override fun evaluate() {
-                if (!config.enabled) {
+                CodePathTracerCore.executeWithTracing(config) {
                     base.evaluate()
-                    return
-                }
-
-                setupAgent()
-                try {
-                    base.evaluate()
-                } finally {
                 }
             }
         }
     }
 
-    private fun setupAgent() {
-        try {
-            // Update agent config (agent is already installed via static init)
-            CodePathTracerAgent.initialize(config)
-        } catch (e: Exception) {
-            if (CodePathTracer.DEBUG) {
-                println("[MethodTrace] Failed to setup agent: ${e.message}")
-                e.printStackTrace()
-            }
-        }
-    }
 }
