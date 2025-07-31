@@ -47,12 +47,12 @@ class TraceEventTest {
             className = "com.example.DeepClass", 
             methodName = "deepMethod",
             args = emptyArray(),
-            depth = 42
+            depth = 62
         )
         
         val formatted = deepEvent.defaultFormat()
-        // Should show depth number when >= 40
-        assertTrue(formatted.contains("42⇢"))
+        // Should show depth number when >= 60 (maxIndentDepth)
+        assertTrue(formatted.contains("62⇢"))
         assertTrue(formatted.contains("→ DeepClass.deepMethod()"))
     }
 }
