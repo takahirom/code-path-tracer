@@ -80,15 +80,17 @@ class MethodTraceAdvice {
                     return
                 }
                 
-                // Format with filtered depth and print
-                val filteredDepth = (filteredDepthCounter.get() ?: 1) - 1
-                filteredDepthCounter.set(maxOf(0, filteredDepth))
-                
+                // Format with current filtered depth before decrementing
+                val currentFilteredDepth = filteredDepthCounter.get() ?: 0
                 val adjustedEvent = when (traceEvent) {
-                    is TraceEvent.Enter -> traceEvent.copy(depth = filteredDepth)
-                    is TraceEvent.Exit -> traceEvent.copy(depth = filteredDepth)
+                    is TraceEvent.Exit -> traceEvent.copy(depth = maxOf(0, currentFilteredDepth - 1))
+                    else -> traceEvent // Should not happen in methodExit
                 }
                 val formattedOutput = config.formatter(adjustedEvent)
+                
+                // Update filtered depth counter after formatting
+                val newFilteredDepth = maxOf(0, currentFilteredDepth - 1)
+                filteredDepthCounter.set(newFilteredDepth)
                 println(formattedOutput)
             } finally {
                 isTracing.set(false)
