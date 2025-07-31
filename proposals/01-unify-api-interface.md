@@ -91,27 +91,42 @@ Create new unified Builder API while maintaining backward compatibility:
 
 ```kotlin
 // New primary API - following Coil's approach
-class CodePathTracer private constructor(
-    private val filter: (TraceEvent) -> Boolean,
-    private val formatter: (TraceEvent) -> String,
-    private val enabled: Boolean,
-    private val maxDepth: Int
-) {
+class CodePathTracer private constructor(private val config: Config) {
+    
+    data class Config(
+        val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
+        val formatter: (TraceEvent) -> String = DefaultFormatter::format,
+        val enabled: Boolean = true,
+        val autoRetransform: Boolean = true,
+        val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
+        val maxToStringLength: Int = 30,
+        val beforeContextSize: Int = 0
+    )
     
     class Builder {
         private var filter: (TraceEvent) -> Boolean = DefaultFilter::filter
         private var formatter: (TraceEvent) -> String = DefaultFormatter::format
         private var enabled: Boolean = true
-        private var maxDepth: Int = Int.MAX_VALUE
+        private var autoRetransform: Boolean = true
+        private var traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) }
+        private var maxToStringLength: Int = 30
+        private var beforeContextSize: Int = 0
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
-        fun formatter(fn: (TraceEvent) -> String) = apply { this.formatter = fn }
-        fun enabled(value: Boolean) = apply { this.enabled = value }
-        fun maxDepth(depth: Int) = apply { this.maxDepth = depth }
+        fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
+        fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
+        fun autoRetransform(autoRetransform: Boolean) = apply { this.autoRetransform = autoRetransform }
+        fun traceEventGenerator(generator: (AdviceData) -> TraceEvent?) = apply { this.traceEventGenerator = generator }
+        fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
+        fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
         
-        fun build() = CodePathTracer(filter, formatter, enabled, maxDepth)
+        fun build(): CodePathTracer = CodePathTracer(Config(
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
+        ))
         
-        fun asJUnitRule() = CodePathTracerRule(build())
+        fun asJUnitRule(): CodePathTracerRule = CodePathTracerRule(Config(
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
+        ))
     }
     
     fun <T> trace(block: () -> T): T {
@@ -120,16 +135,15 @@ class CodePathTracer private constructor(
     
     fun newBuilder(): Builder {
         return Builder()
-            .filter(filter)
-            .formatter(formatter)
-            .enabled(enabled)
-            .maxDepth(maxDepth)
+            .filter(config.filter)
+            .formatter(config.formatter)
+            .enabled(config.enabled)
+            .autoRetransform(config.autoRetransform)
+            .traceEventGenerator(config.traceEventGenerator)
+            .maxToStringLength(config.maxToStringLength)
+            .beforeContextSize(config.beforeContextSize)
     }
     
-    companion object {
-        /** Invoke operator for creating a builder: CodePathTracer.Builder() */
-        operator fun invoke(): Builder = Builder()
-    }
 }
 
 // Default tracer instance
@@ -214,7 +228,7 @@ codePathTrace(configuredTracer) {
 val advancedTracer = CodePathTracer.Builder()
     .filter { event -> 
         event.className.startsWith("com.myapp") && 
-        event.depth < 5
+        event.methodName == "targetMethod"
     }
     .formatter { event ->
         when (event) {
@@ -222,7 +236,8 @@ val advancedTracer = CodePathTracer.Builder()
             is TraceEvent.Exit -> "← ${event.fullMethodName} = ${event.returnValue}"
         }
     }
-    .maxDepth(10)
+    .beforeContextSize(3)  // Show 3 context events before filtered events
+    .maxToStringLength(50)
     .enabled(System.getProperty("tracing.enabled") == "true")
     .build()
 
