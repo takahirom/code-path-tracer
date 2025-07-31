@@ -8,7 +8,7 @@ object DefaultFormatter {
     var defaultMaxLength = 30
     
     @Volatile
-    var defaultMaxIndentDepth = 40
+    var defaultMaxIndentDepth = 60
     
     fun format(event: TraceEvent): String = event.defaultFormat(defaultMaxLength, defaultMaxIndentDepth)
     fun format(event: TraceEvent, maxLength: Int): String = event.defaultFormat(maxLength, defaultMaxIndentDepth)
