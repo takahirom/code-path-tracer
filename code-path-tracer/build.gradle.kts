@@ -31,3 +31,14 @@ tasks.jar {
     )
   }
 }
+
+// Test JVM configuration with memory dump settings
+tasks.test {
+  jvmArgs(
+    "-Xmx2g",
+    "-XX:MaxMetaspaceSize=512m",
+    "-XX:+HeapDumpOnOutOfMemoryError",
+    "-XX:HeapDumpPath=./heap-dumps/",
+    "-Xlog:gc*:./gc.log:time"
+  )
+}

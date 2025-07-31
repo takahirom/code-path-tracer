@@ -18,6 +18,52 @@ object CodePathTracerAgent {
     private var isInitialized = false
     private var resettableTransformer: net.bytebuddy.agent.builder.ResettableClassFileTransformer? = null
 
+    /**
+     * Ensure ByteBuddy Agent is installed (heavy operation, once per process)
+     */
+    @Synchronized
+    fun ensureInstalled() {
+        if (isInitialized) {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Agent already installed")
+            return
+        }
+        
+        if (CodePathTracer.DEBUG) println("[MethodTrace] Installing ByteBuddy Agent...")
+        
+        // Enable ByteBuddy experimental features
+        System.setProperty("net.bytebuddy.experimental", "true")
+        
+        try {
+            val instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
+            val agentBuilder = createAgentBuilder()
+            
+            resettableTransformer = agentBuilder.installOnByteBuddyAgent()
+            isInitialized = true
+            
+            if (CodePathTracer.DEBUG) println("[MethodTrace] ByteBuddy Agent installed successfully")
+        } catch (e: Exception) {
+            if (CodePathTracer.DEBUG) {
+                println("[MethodTrace] Agent installation FAILED: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * Update configuration (lightweight operation)
+     */
+    @Synchronized
+    fun updateConfig(newConfig: CodePathTracer.Config?) {
+        this.config = newConfig
+        
+        if (newConfig != null) {
+            DefaultFormatter.defaultMaxLength = newConfig.maxToStringLength
+            DefaultFormatter.defaultMaxIndentDepth = newConfig.maxIndentDepth
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Config updated: $newConfig")
+        } else {
+            if (CodePathTracer.DEBUG) println("[MethodTrace] Config cleared (tracing disabled)")
+        }
+    }
 
     @Synchronized
     fun initialize(config: CodePathTracer.Config) {
@@ -237,6 +283,20 @@ object CodePathTracerAgent {
     }
     
     /**
+     * Reset only configuration to disable tracing (no ByteBuddy retransform)
+     */
+    @Synchronized
+    fun resetConfigOnly() {
+        config = null
+        
+        // Clean up ThreadLocal variables to prevent memory leaks
+        try {
+            MethodTraceAdvice.cleanup()
+        } catch (e: Exception) {
+        }
+    }
+    
+    /**
      * Reset configuration to disable tracing
      */
     @Synchronized
@@ -263,6 +323,10 @@ object CodePathTracerAgent {
                 }
             }
         } catch (e: Exception) {
+            if (CodePathTracer.DEBUG) {
+                println("[MethodTrace] Failed to reset ByteBuddy transformer: ${e.message}")
+                e.printStackTrace()
+            }
         }
         
         // Force reset initialization state to allow re-initialization 
