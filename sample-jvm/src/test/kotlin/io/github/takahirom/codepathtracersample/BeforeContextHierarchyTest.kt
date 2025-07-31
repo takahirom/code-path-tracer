@@ -4,8 +4,7 @@ import io.github.takahirom.codepathtracer.CodePathTracer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
+import io.github.takahirom.codepathtracersample.TestUtils.captureOutput
 
 class BeforeContextHierarchyTest {
     
@@ -65,19 +64,6 @@ class BeforeContextHierarchyTest {
     
     // TODO: Add test for beforeContextSize=2 later
     
-    private fun captureOutput(action: () -> Unit): String {
-        val originalOut = System.out
-        val outputStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(outputStream))
-        
-        try {
-            action()
-        } finally {
-            System.setOut(originalOut)
-        }
-        
-        return outputStream.toString()
-    }
 }
 
 class TestHierarchy {

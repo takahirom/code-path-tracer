@@ -4,8 +4,7 @@ import io.github.takahirom.codepathtracer.CodePathTracer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
+import io.github.takahirom.codepathtracersample.TestUtils.captureOutput
 
 /**
  * Test cases to verify the improved context exit tracking mechanism
@@ -109,26 +108,15 @@ class ContextExitDuplicationTest {
         
         println("=== Nested test completed ===")
         
-        // Expected output with beforeContextSize=1:
+        // Note: This test currently uses the main rule which filters b1/b2, not inner
+        // The nested hierarchy test should be run manually to verify nested context behavior
+        // Expected output with beforeContextSize=1 when filtering inner method:
         // -> middle   # context enter (generated when inner enters)
         //   -> inner  # actual filtered method  
         //   <- inner  # actual filtered method exit
         // <- middle   # context exit (generated when middle actually exits)
     }
     
-    private fun captureOutput(action: () -> Unit): String {
-        val originalOut = System.out
-        val outputStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(outputStream))
-        
-        try {
-            action()
-        } finally {
-            System.setOut(originalOut)
-        }
-        
-        return outputStream.toString()
-    }
 }
 
 class DuplicationTestHierarchy {
