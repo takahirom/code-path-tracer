@@ -16,8 +16,7 @@ data class ContextExitInfo(
     val className: String,
     val methodName: String,
     val actualDepth: Int,        // The actual depth of the context method for triggering exit
-    val displayDepth: Int,       // The filtered depth used for display
-    val wasGenerated: Boolean = true // Marks this as a context-generated exit
+    val displayDepth: Int        // The filtered depth used for display
 )
 
 /**
@@ -117,6 +116,10 @@ class MethodTraceAdvice {
         private val callStack = ThreadLocal<MutableList<CallContext>>()
         private val contextExitTracker = ThreadLocal<ContextExitTracker>()
         
+        private fun getCallPath(config: CodePathTracer.Config): List<CallContext> {
+            return if (config.beforeContextSize > 0) callStack.get() ?: emptyList() else emptyList()
+        }
+        
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
         fun methodEnter(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.AllArguments args: Array<Any?>) {
@@ -127,12 +130,7 @@ class MethodTraceAdvice {
             
             val depth = depthCounter.get() ?: 0
             
-            // Get current call stack for callPath
-            val currentCallPath = if (config.beforeContextSize > 0) {
-                callStack.get() ?: mutableListOf()
-            } else {
-                mutableListOf()
-            }
+            val currentCallPath = getCallPath(config)
             
             // Create AdviceData and convert to TraceEvent using traceEventGenerator
             val adviceData = AdviceData.Enter(
@@ -158,14 +156,11 @@ class MethodTraceAdvice {
                 
                 // Add to call stack if enabled
                 if (config.beforeContextSize > 0) {
-                    val stack = callStack.get()
-                    if (stack != null) {
-                        stack.add(CallContext(
-                            className = traceEvent.className,
-                            methodName = traceEvent.methodName,
-                            depth = depth
-                        ))
-                    }
+                    callStack.get()?.add(CallContext(
+                        className = traceEvent.className,
+                        methodName = traceEvent.methodName,
+                        depth = depth
+                    ))
                 }
                 
                 // Apply filter
@@ -181,14 +176,10 @@ class MethodTraceAdvice {
                         val contextMethods = stack.takeLast(minOf(config.beforeContextSize + 1, stack.size))
                             .dropLast(1) // Remove current method
                         
-                        // Initialize context exit tracker if needed
-                        if (contextExitTracker.get() == null) {
-                            contextExitTracker.set(ContextExitTracker())
-                        }
-                        
-                        // Get context methods to show (excluding duplicates) and queue their exits
+                        // Initialize context exit tracker if needed and get methods to show
+                        val tracker = contextExitTracker.get() ?: ContextExitTracker().also { contextExitTracker.set(it) }
                         val startingDepth = maxOf(0, filteredDepthCounter.get() - contextMethods.size)
-                        val methodsToShow = contextExitTracker.get()?.queueContextExits(contextMethods, startingDepth) ?: emptyList()
+                        val methodsToShow = tracker.queueContextExits(contextMethods, startingDepth)
                         
                         // Generate Enter events only for methods that should be shown
                         var contextDepth = startingDepth
@@ -237,12 +228,7 @@ class MethodTraceAdvice {
             val depth = (depthCounter.get() ?: 1) - 1
             depthCounter.set(depth)
             
-            // Get current call stack for callPath
-            val currentCallPath = if (config.beforeContextSize > 0) {
-                callStack.get() ?: mutableListOf()
-            } else {
-                mutableListOf()
-            }
+            val currentCallPath = getCallPath(config)
             
             // Create AdviceData and convert to TraceEvent using traceEventGenerator
             val adviceData = AdviceData.Exit(
@@ -264,10 +250,7 @@ class MethodTraceAdvice {
                 
                 // Remove from call stack if enabled
                 if (config.beforeContextSize > 0) {
-                    val stack = callStack.get()
-                    if (stack != null && stack.isNotEmpty()) {
-                        stack.removeLastOrNull()
-                    }
+                    callStack.get()?.takeIf { it.isNotEmpty() }?.removeLastOrNull()
                 }
                 
                 // Check if this method passes the filter
@@ -288,26 +271,18 @@ class MethodTraceAdvice {
                     filteredDepthCounter.set(newFilteredDepth)
                 }
                 
-                // Generate context Exit events if enabled and we have queued exits
+                // Generate context Exit events if enabled and we have queued exits  
                 // This runs for ALL method exits (filtered or not) to catch context method exits
                 if (config.beforeContextSize > 0) {
-                    val exitTracker = contextExitTracker.get()
-                    if (exitTracker != null) {
-                        // Get context exits that should be shown when this method exits
-                        val contextExitsToShow = exitTracker.popContextExitsForDepth(depth)
-                        
-                        // Show context exit events in correct order (shallowest depth first)
-                        for (contextExit in contextExitsToShow) {
-                            val contextExitEvent = TraceEvent.Exit(
-                                className = contextExit.className,
-                                methodName = contextExit.methodName,
-                                returnValue = null, // Context methods don't have return value info
-                                depth = contextExit.displayDepth, // Use the stored display depth
-                                callPath = currentCallPath.toList()
-                            )
-                            val formattedContextExit = config.formatter(contextExitEvent)
-                            println(formattedContextExit)
-                        }
+                    contextExitTracker.get()?.popContextExitsForDepth(depth)?.forEach { contextExit ->
+                        val contextExitEvent = TraceEvent.Exit(
+                            className = contextExit.className,
+                            methodName = contextExit.methodName,
+                            returnValue = null,
+                            depth = contextExit.displayDepth,
+                            callPath = currentCallPath
+                        )
+                        println(config.formatter(contextExitEvent))
                     }
                 }
             } finally {
