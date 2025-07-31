@@ -112,7 +112,7 @@ class JvmMethodTraceTest {
         
         // 先にエージェントを初期化してからクラスをロード
         CodePathTracerAgent.initialize(
-            CodePathTracer.simple()
+            CodePathTracer.Config()
         )
         Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
         
@@ -174,12 +174,11 @@ class JvmMethodTraceTest {
         println("=== Testing Custom TraceEventGenerator ===")
         
         // Use the default traceEventGenerator to confirm the feature is working
-        val customConfig = CodePathTracer.Config(
-            filter = { event -> event.className.contains("SampleCalculator") },
-            traceEventGenerator = CodePathTracer::defaultTraceEventGenerator
-        )
-        
-        codePathTrace(customConfig) {
+        val customTracer = CodePathTracer.Builder()
+            .filter { event -> event.className.contains("SampleCalculator") }
+            .traceEventGenerator(CodePathTracer::defaultTraceEventGenerator)
+            .build()
+        codePathTrace(customTracer) {
             val calculator = SampleCalculator()
             calculator.add(2, 3)
         }
@@ -192,12 +191,11 @@ class JvmMethodTraceTest {
         println("=== Testing maxToStringLength Configuration ===")
         
         // Test with very short maxToStringLength
-        val shortConfig = CodePathTracer.Config(
-            filter = { event -> event.className.contains("SampleCalculator") },
-            maxToStringLength = 5
-        )
-        
-        codePathTrace(shortConfig) {
+        val shortTracer = CodePathTracer.Builder()
+            .filter { event -> event.className.contains("SampleCalculator") }
+            .maxToStringLength(5)
+            .build()
+        codePathTrace(shortTracer) {
             val calculator = SampleCalculator()
             calculator.add(123456789, 987654321) // Long numbers should be truncated
         }
