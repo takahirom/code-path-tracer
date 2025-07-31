@@ -36,6 +36,11 @@ debug_output.log
 *.tmp
 *.temp
 
+# GC logs and memory dumps
+gc.log*
+heap-dumps/
+*.hprof
+
 # Test outputs
 **/test-results/
 **/reports/
