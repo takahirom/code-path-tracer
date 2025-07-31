@@ -47,6 +47,8 @@ class CodePathTracerRule internal constructor(
                 try {
                     base.evaluate()
                 } finally {
+                    // Reset tracing to clean up ThreadLocal variables and prevent memory leaks
+                    CodePathTracerAgent.reset()
                 }
             }
         }
