@@ -39,24 +39,28 @@ codePathTrace({
 Based on lessons learned from libraries like Coil, OkHttp, and Retrofit, replace all three approaches with a single, consistent Builder-based API:
 
 ```kotlin
-// Primary API: Builder-based configuration
-val tracer = CodePathTracer.Builder()
+// Simple usage with default settings
+codePathTrace {
+    myObject.complexMethod()
+}
+
+// Custom configuration with Builder
+val customTracer = CodePathTracer.Builder()
     .filter { event -> event.className.contains("MyClass") }
     .formatter { event -> "Custom: ${event.methodName}" }
     .maxDepth(5)
     .enabled(true)
     .build()
 
-// Execute traced code
-tracer.trace {
+// Use custom tracer
+codePathTrace(customTracer) {
     myObject.complexMethod()
 }
 
-// One-liner for simple cases
-CodePathTracer.Builder()
-    .filter { event -> event.className.contains("MyClass") }
-    .build()
-    .trace { myObject.complexMethod() }
+// Direct builder usage (also supported)
+customTracer.trace {
+    myObject.complexMethod()
+}
 
 // JUnit Rule integration
 @get:Rule
@@ -76,6 +80,8 @@ Based on Coil's experience and industry best practices:
 4. **Java Compatibility**: Fully compatible with Java consumers
 5. **Factory Pattern**: Supports instance reuse and `newBuilder()` style copying
 6. **Industry Standard**: Consistent with OkHttp, Retrofit, and other major libraries
+7. **Simple Default Usage**: `codePathTrace { }` works with no configuration needed
+8. **Flexible Integration**: Can use default tracer or custom tracer with same API
 
 ## Implementation Plan
 
@@ -124,6 +130,15 @@ class CodePathTracer private constructor(
         fun Builder() = Builder()
     }
 }
+
+// Default tracer instance
+private val DEFAULT_TRACER = CodePathTracer.Builder().build()
+
+// Primary API - simple usage with default settings
+fun <T> codePathTrace(block: () -> T): T = DEFAULT_TRACER.trace(block)
+
+// Primary API - usage with custom tracer
+fun <T> codePathTrace(tracer: CodePathTracer, block: () -> T): T = tracer.trace(block)
 
 // Backward compatibility function (deprecated)
 @Deprecated("Use CodePathTracer.Builder() instead")
@@ -176,19 +191,18 @@ val productionTracer = baseTracer.newBuilder()
 ### Basic Usage
 
 ```kotlin
-// Simple tracing
-val tracer = CodePathTracer.Builder().build()
-tracer.trace {
+// Simple tracing with default settings
+codePathTrace {
     calculator.complexCalculation(5, 3)
 }
 
-// With configuration
+// With custom configuration
 val configuredTracer = CodePathTracer.Builder()
     .filter { event -> !event.methodName.startsWith("get") }
     .formatter { event -> "➤ ${event.shortClassName}.${event.methodName}" }
     .build()
     
-configuredTracer.trace {
+codePathTrace(configuredTracer) {
     userService.processUser(user)
 }
 ```
@@ -211,7 +225,7 @@ val advancedTracer = CodePathTracer.Builder()
     .enabled(System.getProperty("tracing.enabled") == "true")
     .build()
 
-advancedTracer.trace {
+codePathTrace(advancedTracer) {
     // Complex business logic here
     businessLogic.processWorkflow()
 }
