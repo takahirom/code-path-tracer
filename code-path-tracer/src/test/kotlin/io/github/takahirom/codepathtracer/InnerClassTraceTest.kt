@@ -14,13 +14,13 @@ class InnerClassTraceTest {
     private val capturedEvents = mutableListOf<TraceEvent>()
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event ->
             capturedEvents.add(event)
             // Capture everything that contains our test class name to investigate
             event.className.contains("InnerClassTraceTest")
         }
-        .build()
+        .asJUnitRule()
     
     @Test
     fun testInnerClassTracing() {

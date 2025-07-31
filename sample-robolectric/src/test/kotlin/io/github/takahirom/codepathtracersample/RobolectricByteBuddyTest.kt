@@ -17,16 +17,15 @@ class RobolectricByteBuddyTest {
         
         val capturedEvents = mutableListOf<TraceEvent>()
         
-        codePathTrace(CodePathTracer.Config(
-            autoRetransform = false,
-            filter = { event ->
+        codePathTrace(CodePathTracer.Builder()
+            .filter{ event ->
                 if (event.className.contains("MainActivity")) {
                     capturedEvents.add(event)
                     println("CAPTURED: ${event.className}.${event.methodName}")
                     true
                 } else false
-            }
-        )) {
+            }.build()
+        ) {
             try {
                 println("Creating MainActivity instance...")
                 val mainActivity = MainActivity()

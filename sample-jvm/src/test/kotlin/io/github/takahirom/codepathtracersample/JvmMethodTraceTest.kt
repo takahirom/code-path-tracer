@@ -14,7 +14,7 @@ class JvmMethodTraceTest {
     private val capturedEvents = mutableListOf<TraceEvent>()
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event -> 
             // Capture events for verification
             capturedEvents.add(event)
@@ -31,7 +31,7 @@ class JvmMethodTraceTest {
                 is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
             }
         }
-        .build()
+        .asJUnitRule()
     
     @Test
     fun testBusinessLogicWithTrace() {

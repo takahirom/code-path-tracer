@@ -1,6 +1,6 @@
 package io.github.takahirom.codepathtracersample
 
-import io.github.takahirom.codepathtracer.CodePathTracerRule
+import io.github.takahirom.codepathtracer.CodePathTracer
 import io.github.takahirom.codepathtracer.TraceEvent
 import org.junit.Rule
 import org.junit.Test
@@ -10,7 +10,7 @@ class InnerClassInvestigationTest {
     private val capturedEvents = mutableListOf<TraceEvent>()
     
     @get:Rule
-    val methodTraceRule = CodePathTracerRule.builder()
+    val methodTraceRule = CodePathTracer.Builder()
         .filter { event ->
             // Only trace inner classes, not the test class itself to avoid infinite recursion
             val shouldTrace = event.className.contains("InnerCalculator") || 
@@ -22,7 +22,7 @@ class InnerClassInvestigationTest {
             }
             shouldTrace
         }
-        .build()
+        .asJUnitRule()
     
     @Test
     fun investigateExternalInnerClassTracing() {

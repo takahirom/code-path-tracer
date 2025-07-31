@@ -36,9 +36,9 @@ Ever wondered "which view actually handled my touch event?" CodePathTracer shows
 
 ```kotlin
 @get:Rule
-val traceRule = CodePathTracerRule.builder()
+val traceRule = CodePathTracer.Builder()
     .filter { event -> event.methodName.contains("TouchEvent") }
-    .build()
+    .asJUnitRule()
 ```
 
 **Output reveals the touch event flow:**
@@ -87,7 +87,7 @@ Want custom formatting? Configure it easily:
 
 ```kotlin
 @get:Rule
-val methodTraceRule = CodePathTracerRule.builder()
+val methodTraceRule = CodePathTracer.Builder()
     .filter { event -> event.className.contains("Calculator") }
     .formatter { event -> 
         when (event) {
@@ -95,7 +95,7 @@ val methodTraceRule = CodePathTracerRule.builder()
             is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
         }
     }
-    .build()
+    .asJUnitRule()
 
 @Test
 fun testCalculator() {
@@ -115,20 +115,20 @@ fun testCalculator() {
 ⬅ SampleCalculator.complexCalculation = 28
 ```
 
-Or customize directly with `codePathTrace()`:
+Or create a custom tracer:
 
 ```kotlin
-codePathTrace(
-    CodePathTracer.Config(
-        filter = { event -> event.className.contains("Calculator") },
-        formatter = { event -> 
-            when (event) {
-                is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
-                is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
-            }
+val customTracer = CodePathTracer.Builder()
+    .filter { event -> event.className.contains("Calculator") }
+    .formatter { event -> 
+        when (event) {
+            is TraceEvent.Enter -> "➤ ${event.shortClassName}.${event.methodName}(${event.args.size})"
+            is TraceEvent.Exit -> "⬅ ${event.shortClassName}.${event.methodName} = ${event.returnValue}"
         }
-    )
-) {
+    }
+    .build()
+
+codePathTrace(customTracer) {
     calculator.complexCalculation(5, 3)
 }
 ```
