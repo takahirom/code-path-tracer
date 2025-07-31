@@ -45,13 +45,15 @@ class CodePathTracerRule private constructor(
         private var formatter: (TraceEvent) -> String = { event -> event.defaultFormat() }
         private var enabled = true
         private var maxToStringLength = 30
+        private var beforeContextSize = 0
 
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
         fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
+        fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
 
-        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled, autoRetransform = true, traceEventGenerator = { advice -> CodePathTracer.defaultTraceEventGenerator(advice) }, maxToStringLength))
+        fun build() = CodePathTracerRule(CodePathTracer.Config(filter, formatter, enabled, autoRetransform = true, traceEventGenerator = { advice -> CodePathTracer.defaultTraceEventGenerator(advice) }, maxToStringLength, beforeContextSize))
     }
 
     override fun apply(base: Statement, description: Description): Statement {
