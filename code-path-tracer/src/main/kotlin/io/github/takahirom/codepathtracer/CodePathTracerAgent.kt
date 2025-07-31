@@ -58,7 +58,6 @@ object CodePathTracerAgent {
         
         if (newConfig != null) {
             DefaultFormatter.defaultMaxLength = newConfig.maxToStringLength
-            DefaultFormatter.defaultMaxIndentDepth = newConfig.maxIndentDepth
             if (CodePathTracer.DEBUG) println("[MethodTrace] Config updated: $newConfig")
         } else {
             if (CodePathTracer.DEBUG) println("[MethodTrace] Config cleared (tracing disabled)")

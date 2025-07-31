@@ -38,7 +38,7 @@ tasks.test {
     "-Xmx2g",
     "-XX:MaxMetaspaceSize=512m",
     "-XX:+HeapDumpOnOutOfMemoryError",
-    "-XX:HeapDumpPath=./heap-dumps/",
-    "-Xlog:gc*:./gc.log:time"
+    "-XX:HeapDumpPath=./build/heap-dumps/",
+    "-Xlog:gc*:file=./build/gc.log:time"
   )
 }
