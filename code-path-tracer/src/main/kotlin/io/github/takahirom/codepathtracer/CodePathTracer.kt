@@ -30,7 +30,8 @@ class CodePathTracer private constructor(private val config: Config) {
         val enabled: Boolean = true,
         val autoRetransform: Boolean = true,
         val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
-        val maxToStringLength: Int = 30
+        val maxToStringLength: Int = 30,
+        val beforeContextSize: Int = 0
     )
     
     /**
@@ -113,6 +114,7 @@ class CodePathTracer private constructor(private val config: Config) {
         private var autoRetransform: Boolean = true
         private var traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) }
         private var maxToStringLength: Int = 30
+        private var beforeContextSize: Int = 0
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
@@ -120,13 +122,14 @@ class CodePathTracer private constructor(private val config: Config) {
         fun autoRetransform(autoRetransform: Boolean) = apply { this.autoRetransform = autoRetransform }
         fun traceEventGenerator(generator: (AdviceData) -> TraceEvent?) = apply { this.traceEventGenerator = generator }
         fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
+        fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
         
         fun build(): CodePathTracer = CodePathTracer(Config(
-            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
         ))
         
         fun asJUnitRule(): CodePathTracerRule = CodePathTracerRule(Config(
-            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength
+            filter, formatter, enabled, autoRetransform, traceEventGenerator, maxToStringLength, beforeContextSize
         ))
     }
     
@@ -141,6 +144,7 @@ class CodePathTracer private constructor(private val config: Config) {
             .autoRetransform(config.autoRetransform)
             .traceEventGenerator(config.traceEventGenerator)
             .maxToStringLength(config.maxToStringLength)
+            .beforeContextSize(config.beforeContextSize)
     }
 }
 

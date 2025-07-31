@@ -35,7 +35,6 @@ class CodePathTracerRule internal constructor(
     private val config: CodePathTracer.Config
 ) : TestRule {
 
-
     override fun apply(base: Statement, description: Description): Statement {
         return object : Statement() {
             override fun evaluate() {
