@@ -9,6 +9,7 @@ class MethodTraceAdvice {
         private val depthCounter = ThreadLocal.withInitial { 0 }
         private val filteredDepthCounter = ThreadLocal.withInitial { 0 }
         private val isTracing = ThreadLocal.withInitial { false }
+        private val eventBuffer = ThreadLocal<CircularBuffer<TraceEvent>>()
         
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
@@ -28,13 +29,35 @@ class MethodTraceAdvice {
             )
             val traceEvent = config.traceEventGenerator(adviceData) ?: return
             
+            // Initialize buffer if beforeContextSize > 0
+            if (config.beforeContextSize > 0 && eventBuffer.get() == null) {
+                eventBuffer.set(CircularBuffer(config.beforeContextSize * 2))
+            }
+            
             try {
                 isTracing.set(true)
+                
+                // Store event in buffer before filtering (if buffer enabled)
+                eventBuffer.get()?.add(traceEvent)
                 
                 // Apply filter
                 if (!config.filter(traceEvent)) {
                     depthCounter.set(depth + 1)  // Update depth but don't log
                     return
+                }
+                
+                // Print buffered context events if enabled
+                if (config.beforeContextSize > 0) {
+                    val buffer = eventBuffer.get()
+                    if (buffer != null) {
+                        val contextEvents = buffer.getLast(config.beforeContextSize)
+                        for (contextEvent in contextEvents) {
+                            if (!config.filter(contextEvent)) {
+                                val contextFormatted = config.formatter(contextEvent)
+                                println("  [context] $contextFormatted")
+                            }
+                        }
+                    }
                 }
                 
                 // Format with filtered depth and print
@@ -72,8 +95,16 @@ class MethodTraceAdvice {
             )
             val traceEvent = config.traceEventGenerator(adviceData) ?: return
             
+            // Initialize buffer if beforeContextSize > 0
+            if (config.beforeContextSize > 0 && eventBuffer.get() == null) {
+                eventBuffer.set(CircularBuffer(config.beforeContextSize * 2))
+            }
+            
             try {
                 isTracing.set(true)
+                
+                // Store event in buffer before filtering (if buffer enabled)
+                eventBuffer.get()?.add(traceEvent)
                 
                 // Apply filter
                 if (!config.filter(traceEvent)) {
@@ -103,6 +134,7 @@ class MethodTraceAdvice {
             depthCounter.remove()
             filteredDepthCounter.remove()
             isTracing.remove()
+            eventBuffer.remove()
         }
     }
 }

@@ -29,7 +29,8 @@ class CodePathTracer(private val config: Config) {
         val enabled: Boolean = true,
         val autoRetransform: Boolean = true,
         val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
-        val maxToStringLength: Int = 30
+        val maxToStringLength: Int = 30,
+        val beforeContextSize: Int = 0
     )
     
     /**
@@ -114,12 +115,14 @@ class CodePathTracer(private val config: Config) {
         private var filter: (TraceEvent) -> Boolean = { true }
         private var formatter: (TraceEvent) -> String = DefaultFormatter::format
         private var enabled = true
+        private var beforeContextSize = 0
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { formatter = format }
         fun enabled(enabled: Boolean) = apply { this.enabled = enabled }
+        fun beforeContextSize(size: Int) = apply { beforeContextSize = size }
         
-        fun build(): Config = Config(filter, formatter, enabled)
+        fun build(): Config = Config(filter, formatter, enabled, beforeContextSize = beforeContextSize)
     }
 }
 
