@@ -7,9 +7,16 @@ sealed class TraceEvent {
     abstract val className: String
     abstract val methodName: String
     abstract val depth: Int
+    abstract val callPath: List<CallContext>
 
     val shortClassName: String get() = className.substringAfterLast('.')
     val fullMethodName: String get() = "$shortClassName.$methodName"
+    
+    /**
+     * Get the hierarchical call path as a string
+     */
+    val hierarchicalPath: String get() = 
+        callPath.joinToString(" → ") { "${it.className.substringAfterLast('.')}.${it.methodName}()" }
 
     companion object {
         // ThreadLocal guard to prevent infinite recursion during toString() calls
@@ -63,6 +70,7 @@ sealed class TraceEvent {
         override val methodName: String,
         val args: Array<Any?>,
         override val depth: Int = 0,
+        override val callPath: List<CallContext> = emptyList(),
     ) : TraceEvent() {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -92,7 +100,9 @@ sealed class TraceEvent {
         override val methodName: String,
         val returnValue: Any?,
         override val depth: Int = 0,
+        override val callPath: List<CallContext> = emptyList(),
     ) : TraceEvent()
+
 
     /**
      * Default formatting for trace events with configurable indent limits.
