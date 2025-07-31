@@ -16,7 +16,7 @@ class NestedContextTest {
     val nestedTraceRule = CodePathTracer.Builder()
         .filter { event ->
             // Only trace the innermost method to test nested context display
-            event.className.contains("NestedTestHierarchy") && event.methodName == "inner"
+            event.className.contains("SimpleNestedHierarchy") && event.methodName == "inner"
         }
         .beforeContextSize(1)  // Show 1 level of context (middle method)
         .asJUnitRule()
@@ -26,7 +26,7 @@ class NestedContextTest {
         println("=== Testing single level nested context (beforeContextSize=1) ===")
         
         val output = captureOutput {
-            val test = NestedTestHierarchy()
+            val test = SimpleNestedHierarchy()
             test.outer()  // outer -> middle -> inner (only inner filtered, middle shown as context)
         }
         
@@ -38,10 +38,10 @@ class NestedContextTest {
         assertEquals("Should have exactly 4 trace lines", 4, traceLines.size)
         
         // Verify exact sequence with proper indentation
-        assertEquals("Should show context enter for middle", "→ NestedTestHierarchy.middle()", traceLines[0])
-        assertEquals("Should show method enter for inner", "  → NestedTestHierarchy.inner()", traceLines[1])
-        assertEquals("Should show method exit for inner", "  ← NestedTestHierarchy.inner", traceLines[2])
-        assertEquals("Should show context exit for middle", "← NestedTestHierarchy.middle", traceLines[3])
+        assertEquals("Should show context enter for middle", "→ SimpleNestedHierarchy.middle()", traceLines[0])
+        assertEquals("Should show method enter for inner", "  → SimpleNestedHierarchy.inner()", traceLines[1])
+        assertEquals("Should show method exit for inner", "  ← SimpleNestedHierarchy.inner", traceLines[2])
+        assertEquals("Should show context exit for middle", "← SimpleNestedHierarchy.middle", traceLines[3])
         
         // Verify indentation levels
         assertTrue("Context enter should have no indentation", traceLines[0].startsWith("→"))
@@ -99,6 +99,22 @@ class DeepNestedContextTest {
         
         // Verify outer method is NOT shown (beyond beforeContextSize=2)
         assertFalse("Should not show outer method", traceLines.any { it.contains("outer") })
+    }
+}
+
+class SimpleNestedHierarchy {
+    fun outer() {
+        println("Executing outer")
+        middle()
+    }
+    
+    fun middle() {
+        println("Executing middle")
+        inner()
+    }
+    
+    fun inner() {
+        println("Executing inner")
     }
 }
 
