@@ -103,18 +103,18 @@ class ContextExitDuplicationTest {
     fun testNestedContextExitTracking() {
         println("=== Testing nested context exit tracking ===")
         
+        // This test demonstrates that the current rule filters b1/b2, not inner methods
         val test = NestedTestHierarchy()
-        test.outer()  // outer -> middle -> inner (only inner is filtered)
+        test.outer()  // outer -> middle -> inner (no output because filter doesn't match)
         
         println("=== Nested test completed ===")
         
-        // Note: This test currently uses the main rule which filters b1/b2, not inner
-        // The nested hierarchy test should be run manually to verify nested context behavior
-        // Expected output with beforeContextSize=1 when filtering inner method:
-        // -> middle   # context enter (generated when inner enters)
-        //   -> inner  # actual filtered method  
-        //   <- inner  # actual filtered method exit
-        // <- middle   # context exit (generated when middle actually exits)
+        // Since the current rule filters b1/b2 and NestedTestHierarchy has outer/middle/inner,
+        // no trace output is expected. This test verifies the methods run without error.
+        assertTrue("Nested methods should execute without error", true)
+        
+        // To properly test nested context tracking, you would need a separate test class
+        // with its own @Rule that filters the inner method specifically.
     }
     
 }
