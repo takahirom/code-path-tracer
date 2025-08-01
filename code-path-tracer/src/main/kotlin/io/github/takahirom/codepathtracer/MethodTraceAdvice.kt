@@ -66,8 +66,8 @@ data class DepthManager(
         if (depthStack.isEmpty()) return 0
         
         val entry = depthStack.removeLastOrNull() ?: return 0
-        // Return the depth for this exit (should match the enter depth)
-        return entry.totalDepth
+        // Return display depth (matches enter depth)
+        return entry.totalDepth - 1
     }
     
     /**
@@ -128,7 +128,7 @@ data class ContextExitTracker(
 class MethodTraceAdvice {
     companion object {
         
-        private val depthCounter = ThreadLocal.withInitial { 0 }
+        private val actualDepthCounter = ThreadLocal.withInitial { 0 }
         private val depthManager = ThreadLocal<DepthManager>()
         private val isTracing = ThreadLocal.withInitial { false }
         private val callStack = ThreadLocal<MutableList<CallContext>>()
@@ -146,10 +146,9 @@ class MethodTraceAdvice {
             
             val config = CodePathTracerAgent.getConfig() ?: return
             
-            val depth = depthCounter.get() ?: 0
-            
-            // Always increment depth for ALL methods, regardless of filter
-            depthCounter.set(depth + 1)
+            // Track actual depth for call stack (ALL methods, not just filtered)
+            val depth = actualDepthCounter.get() ?: 0
+            actualDepthCounter.set(depth + 1)
             
             val currentCallPath = getCallPath(config)
             
@@ -265,8 +264,9 @@ class MethodTraceAdvice {
             
             val config = CodePathTracerAgent.getConfig() ?: return
             
-            val depth = (depthCounter.get() ?: 1) - 1
-            depthCounter.set(depth)
+            // Track actual depth for call stack (ALL methods, not just filtered)
+            val depth = (actualDepthCounter.get() ?: 1) - 1
+            actualDepthCounter.set(depth)
             
             val currentCallPath = getCallPath(config)
             
@@ -300,7 +300,7 @@ class MethodTraceAdvice {
                     // Use depth manager for proper depth management
                     val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
                     val exitDepth = depthMgr.onMethodExit()
-                    val adjustedEvent = (traceEvent as TraceEvent.Exit).copy(depth = maxOf(0, exitDepth - 1))
+                    val adjustedEvent = (traceEvent as TraceEvent.Exit).copy(depth = maxOf(0, exitDepth))
                     println(config.formatter(adjustedEvent))
                 }
                 
@@ -323,7 +323,7 @@ class MethodTraceAdvice {
          */
         @JvmStatic
         fun cleanup() {
-            depthCounter.remove()
+            actualDepthCounter.remove()
             depthManager.get()?.clear()
             depthManager.remove()
             isTracing.remove()
