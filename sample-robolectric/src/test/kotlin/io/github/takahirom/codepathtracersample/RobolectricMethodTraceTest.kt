@@ -23,29 +23,24 @@ class RobolectricMethodTraceTest {
     
     @Test
     fun testActivityCreationWithTrace() {
-        println("=== Starting Robolectric Activity Test with Method Trace ===")
-        
         // Create Activity Controller
         val controller = Robolectric.buildActivity(MainActivity::class.java)
         
         try {
             // Lifecycle: Create
-            println("Creating activity...")
             val activity = controller.create().get()
             
             // Verify activity is created
-            assert(activity != null)
-            println("Activity created successfully")
+            assert(activity != null) { "Expected activity to be created successfully" }
             
             // Lifecycle: Start
-            println("Starting activity...")
             controller.start()
             
             // Lifecycle: Resume
-            println("Resuming activity...")
             controller.resume()
             
-            println("=== Activity lifecycle test completed ===")
+            // Verify activity state
+            assert(!activity.isFinishing) { "Expected activity to not be finishing" }
         } finally {
             controller.pause().stop().destroy()
         }
@@ -53,30 +48,22 @@ class RobolectricMethodTraceTest {
     
     @Test
     fun testBusinessLogicWithTrace() {
-        println("=== Testing Business Logic with Method Trace ===")
-        println("Agent initialized: ${methodTraceRule}")
+        // Verify method trace rule is initialized
+        assert(methodTraceRule != null) { "Expected methodTraceRule to be initialized" }
         
         val calculator = SampleCalculator()
         
-        // Test addition - should show method trace
-        println("Calling calculator.add(10, 5)...")
+        // Test addition
         val result1 = calculator.add(10, 5)
-        println("Addition result: $result1")
-        assert(result1 == 15)
+        assert(result1 == 15) { "Expected addition result to be 15, got $result1" }
         
-        // Test multiplication - should show method trace  
-        println("Calling calculator.multiply($result1, 2)...")
+        // Test multiplication
         val result2 = calculator.multiply(result1, 2)
-        println("Multiplication result: $result2")
-        assert(result2 == 30)
+        assert(result2 == 30) { "Expected multiplication result to be 30, got $result2" }
         
-        // Test complex calculation - should show nested method traces
-        println("Calling calculator.complexCalculation(5, 3)...")
+        // Test complex calculation
         val result3 = calculator.complexCalculation(5, 3)
-        println("Complex calculation result: $result3")
-        assert(result3 == 28) // (5 + 3) * 2 + 12
-        
-        println("=== Business logic test completed ===")
+        assert(result3 == 28) { "Expected complex calculation result to be 28, got $result3" } // (5 + 3) * 2 + 12
     }
     
 
@@ -100,7 +87,8 @@ class RobolectricMethodTraceTest {
             // Use proper Espresso onView with text matcher to find and click button
             onView(withText("Increment")).perform(click())
             
-            println("Espresso test completed with onView()")
+            // Verify the test completed successfully (no exceptions thrown)
+            assert(true) { "Espresso test should complete without exceptions" }
         }
     }
     class SampleCalculator {

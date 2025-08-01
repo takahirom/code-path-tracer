@@ -35,171 +35,145 @@ class JvmMethodTraceTest {
     
     @Test
     fun testBusinessLogicWithTrace() {
-        println("=== Testing Business Logic with Method Trace ===")
-        
         // Clear any previous events
         capturedEvents.clear()
         
-        // Verify agent config
-        CodePathTracerAgent.getConfig()?.let { config ->
-            println("Current trace config found: $config")
-        } ?: println("⚠️ No trace config found")
+        // Verify agent config is available
+        val config = CodePathTracerAgent.getConfig()
+        assert(config != null) { "Expected trace config to be available" }
         
         val calculator = TestCalculator("BusinessCalculator")
         
         // Test addition
         val result1 = calculator.add(10, 5)
-        println("Addition result: $result1")
-        assert(result1 == 15)
+        assert(result1 == 15) { "Expected addition result to be 15, got $result1" }
         
         // Test multiplication
         val result2 = calculator.multiply(result1, 2)
-        println("Multiplication result: $result2")
-        assert(result2 == 30)
+        assert(result2 == 30) { "Expected multiplication result to be 30, got $result2" }
         
         // Test complex calculation
         val result3 = calculator.complexCalculation(5, 3)
-        println("Complex calculation result: $result3")
-        assert(result3 == 28) // (5 + 3) * 2 + 12
+        assert(result3 == 28) { "Expected complex calculation result to be 28, got $result3" } // (5 + 3) * 2 + 12
         
         // Verify tracing is working
-        println("Rule captured ${capturedEvents.size} events")
-        assert(capturedEvents.isNotEmpty()) { "Expected trace events" }
+        assert(capturedEvents.isNotEmpty()) { "Expected trace events, got ${capturedEvents.size}" }
         
         val calculatorEvents = capturedEvents.filter { it.className.contains("TestCalculator") }
-        assert(calculatorEvents.isNotEmpty()) { "Expected TestCalculator events" }
-        
-        println("=== Business logic test completed ===")
+        assert(calculatorEvents.isNotEmpty()) { "Expected TestCalculator events, found ${calculatorEvents.size}" }
     }
     
     @Test
     fun testDataProcessing() {
-        println("=== Testing Data Processing with Method Trace ===")
-        
         val processor = DataProcessor()
         
         val data = listOf("apple", "banana", "cherry")
         val processed = processor.processStrings(data)
         
-        println("Processed data: $processed")
-        assert(processed.size == 3)
-        assert(processed.all { it.startsWith("PROCESSED:") })
+        assert(processed.size == 3) { "Expected 3 processed items, got ${processed.size}" }
+        assert(processed.all { it.startsWith("PROCESSED:") }) { "All items should start with PROCESSED:, got $processed" }
         
-        println("=== Data processing test completed ===")
+        // Verify specific content
+        assert(processed.contains("PROCESSED:APPLE")) { "Expected PROCESSED:APPLE in $processed" }
+        assert(processed.contains("PROCESSED:BANANA")) { "Expected PROCESSED:BANANA in $processed" }
+        assert(processed.contains("PROCESSED:CHERRY")) { "Expected PROCESSED:CHERRY in $processed" }
     }
     
     @Test
     fun testInnerClassStyleTracing() {
-        println("=== Testing Inner Class Style Tracing ===")
-        
         val calculator = InnerClassStyleCalculator()
         val result = calculator.add(5, 3)
-        println("InnerClassStyleCalculator result: $result")
+        assert(result == 8) { "Expected InnerClassStyleCalculator addition result to be 8, got $result" }
         
         val complexResult = calculator.complexCalculation(4, 6)
-        println("InnerClassStyleCalculator complex result: $complexResult")
+        assert(complexResult == 20) { "Expected InnerClassStyleCalculator complex result to be 20, got $complexResult" } // (4 + 6) * 2
         
         val dollarCalculator = TestClassInnerStyle()
         val multiplyResult = dollarCalculator.multiply(result, 2)
-        println("TestClassInnerStyle result: $multiplyResult")
-        
-        println("=== Inner class style test completed ===")
+        assert(multiplyResult == 16) { "Expected TestClassInnerStyle multiply result to be 16, got $multiplyResult" }
     }
     
     @Test
     fun testSimpleCodePathTrace() {
-        println("=== Testing Simple CodePathTrace DSL ===")
-        
         // 先にエージェントを初期化してからクラスをロード
         CodePathTracerAgent.initialize(
             CodePathTracer.Config()
         )
-        Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
+        val clazz = Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
+        assert(clazz != null) { "Expected SampleCalculator class to be loadable" }
         
         val calculator = SampleCalculator()
         
-        codePathTrace {
+        val result = codePathTrace {
             calculator.complexCalculation(5, 3)
         }
-
-        println("=== DSL test completed ===")
+        
+        assert(result == 28) { "Expected DSL trace result to be 28, got $result" } // (5 + 3) * 2 + 12
     }
     
     @Test
     fun testDepthIndentation() {
-        println("=== Testing Depth Indentation ===")
-        
         val calculator = TestCalculator("DepthTest")
         val result = calculator.complexCalculation(2, 1)
-        println("Final result: $result")
-        
-        println("=== Depth test completed ===")
+        assert(result == 18) { "Expected depth test result to be 18, got $result" } // (2 + 1) * 2 + 12
     }
     
     class SampleCalculator {
         fun add(a: Int, b: Int): Int {
-            println("  Calculator: Adding $a + $b")
             return a + b
         }
         
         fun multiply(a: Int, b: Int): Int {
-            println("  Calculator: Multiplying $a * $b")
             return a * b
         }
         
         fun complexCalculation(x: Int, y: Int): Int {
-            println("  Calculator: Starting complex calculation with $x and $y")
             val sum = add(x, y)
             val doubled = multiply(sum, 2)
             val final = add(doubled, 12)
-            println("  Calculator: Complex calculation complete")
             return final
         }
     }
     
     class DataProcessor {
         fun processStrings(input: List<String>): List<String> {
-            println("  Processor: Processing ${input.size} strings")
             return input.map { processString(it) }
         }
         
         private fun processString(str: String): String {
-            println("  Processor: Processing single string: $str")
             return "PROCESSED:${str.uppercase()}"
         }
     }
     
     @Test
     fun testCustomTraceEventGenerator() {
-        println("=== Testing Custom TraceEventGenerator ===")
-        
         // Use the default traceEventGenerator to confirm the feature is working
         val customTracer = CodePathTracer.Builder()
             .filter { event -> event.className.contains("SampleCalculator") }
             .traceEventGenerator(CodePathTracer::defaultTraceEventGenerator)
             .build()
-        codePathTrace(customTracer) {
+        
+        val result = codePathTrace(customTracer) {
             val calculator = SampleCalculator()
             calculator.add(2, 3)
         }
         
-        println("=== Custom traceEventGenerator test completed (using default generator) ===")
+        assert(result == 5) { "Expected custom tracer result to be 5, got $result" }
     }
     
     @Test
     fun testMaxToStringLengthConfig() {
-        println("=== Testing maxToStringLength Configuration ===")
-        
         // Test with very short maxToStringLength
         val shortTracer = CodePathTracer.Builder()
             .filter { event -> event.className.contains("SampleCalculator") }
             .maxToStringLength(5)
             .build()
-        codePathTrace(shortTracer) {
+        
+        val result = codePathTrace(shortTracer) {
             val calculator = SampleCalculator()
             calculator.add(123456789, 987654321) // Long numbers should be truncated
         }
         
-        println("=== maxToStringLength test completed ===")
+        assert(result == 1111111110) { "Expected maxToStringLength test result to be 1111111110, got $result" }
     }
 }
