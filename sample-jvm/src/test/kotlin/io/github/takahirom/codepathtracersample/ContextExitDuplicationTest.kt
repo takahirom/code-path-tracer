@@ -33,6 +33,7 @@ class ContextExitDuplicationTest {
         val traceLines = output.lines()
             .filter { it.contains("→") || it.contains("←") }
         
+        
         // Verify expected output structure: should have exactly 6 trace lines
         assertEquals("Should have exactly 6 trace lines", 6, traceLines.size)
         

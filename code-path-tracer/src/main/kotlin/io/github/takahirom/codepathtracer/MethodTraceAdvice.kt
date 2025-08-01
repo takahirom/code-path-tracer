@@ -29,6 +29,63 @@ data class ContextMethodKey(
 )
 
 /**
+ * Entry representing depth information for a single method enter
+ */
+data class DepthStackEntry(
+    val baseDepth: Int,              // The depth before adding context methods
+    val contextMethodsCount: Int,    // Number of context methods added for this enter
+    val totalDepth: Int              // The final depth used for display (baseDepth + contextMethodsCount)
+)
+
+/**
+ * Stack-based depth manager to properly handle enter/exit pairs and prevent accumulation
+ */
+data class DepthManager(
+    private val depthStack: MutableList<DepthStackEntry> = mutableListOf()
+) {
+    /**
+     * Called when entering a method. Records the depth information.
+     * Returns the depth to use for display of the actual method.
+     */
+    fun onMethodEnter(contextMethodsCount: Int): Int {
+        val baseDepth = if (depthStack.isEmpty()) 0 else depthStack.last().totalDepth
+        val actualMethodDepth = baseDepth + contextMethodsCount
+        val totalDepth = actualMethodDepth + 1  // +1 for the actual method itself
+        
+        val entry = DepthStackEntry(baseDepth, contextMethodsCount, totalDepth)
+        depthStack.add(entry)
+        
+        return actualMethodDepth  // Return depth for actual method display
+    }
+    
+    /**
+     * Called when exiting a method. Removes the last entry from stack.
+     * Returns the depth to use for display.
+     */
+    fun onMethodExit(): Int {
+        if (depthStack.isEmpty()) return 0
+        
+        val entry = depthStack.removeLastOrNull() ?: return 0
+        // Return the depth for this exit (should match the enter depth)
+        return entry.totalDepth
+    }
+    
+    /**
+     * Get current depth without modifying the stack
+     */
+    fun getCurrentDepth(): Int {
+        return depthStack.lastOrNull()?.totalDepth ?: 0
+    }
+    
+    /**
+     * Clear the stack (for cleanup)
+     */
+    fun clear() {
+        depthStack.clear()
+    }
+}
+
+/**
  * Stack-like structure to track pending context exit events and prevent duplicates
  */
 data class ContextExitTracker(
@@ -72,7 +129,7 @@ class MethodTraceAdvice {
     companion object {
         
         private val depthCounter = ThreadLocal.withInitial { 0 }
-        private val filteredDepthCounter = ThreadLocal.withInitial { 0 }
+        private val depthManager = ThreadLocal<DepthManager>()
         private val isTracing = ThreadLocal.withInitial { false }
         private val callStack = ThreadLocal<MutableList<CallContext>>()
         private val contextExitTracker = ThreadLocal<ContextExitTracker>()
@@ -135,10 +192,13 @@ class MethodTraceAdvice {
                         val contextMethods = stack.takeLast(minOf(config.beforeContextSize + 1, stack.size))
                             .dropLast(1) // Remove current method
                         
-                        // Initialize context exit tracker if needed and get methods to show
+                        // Initialize depth manager and context exit tracker if needed
+                        val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
                         val tracker = contextExitTracker.get() ?: ContextExitTracker().also { contextExitTracker.set(it) }
-                        val startingDepth = maxOf(0, filteredDepthCounter.get() - contextMethods.size)
-                        val methodsToShow = tracker.queueContextExits(contextMethods, startingDepth)
+                        
+                        // Calculate depths using the new depth manager
+                        val baseDepth = depthMgr.getCurrentDepth()
+                        val methodsToShow = tracker.queueContextExits(contextMethods, baseDepth)
                         
                         // Generate Enter events only for methods that should be shown
                         methodsToShow.forEachIndexed { i, contextMethod ->
@@ -146,22 +206,52 @@ class MethodTraceAdvice {
                                 className = contextMethod.className,
                                 methodName = contextMethod.methodName,
                                 args = arrayOf(),
-                                depth = startingDepth + i,
+                                depth = baseDepth + i,
                                 callPath = currentCallPath
                             )
                             println(config.formatter(contextEnterEvent))
                         }
+
+                        // Record the depth information in the depth manager
+                        // Note: We need to account for ALL context methods, not just the ones shown
+                        val allContextMethodsCount = contextMethods.size
+                        val actualMethodDepth = depthMgr.onMethodEnter(allContextMethodsCount)
+                        
+                        
+                        // Update the display depth for the actual method entry
+                        val adjustedEvent = when (traceEvent) {
+                            is TraceEvent.Enter -> traceEvent.copy(depth = actualMethodDepth)
+                            is TraceEvent.Exit -> traceEvent.copy(depth = actualMethodDepth)
+                        }
+                        println(config.formatter(adjustedEvent))
+                        return  // Exit early since we've already printed
+                    } else {
+                        // No context methods, use depth manager for simple case
+                        val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
+                        val actualMethodDepth = depthMgr.onMethodEnter(0)
+                        
+                        // Format with managed depth and print
+                        val adjustedEvent = when (traceEvent) {
+                            is TraceEvent.Enter -> traceEvent.copy(depth = actualMethodDepth)
+                            is TraceEvent.Exit -> traceEvent.copy(depth = actualMethodDepth)
+                        }
+                        println(config.formatter(adjustedEvent))
+                        return  // Exit early since we've already printed
                     }
                 }
                 
-                // Format with filtered depth and print
+                // Initialize depth manager if needed (for non-context case)
+                val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
+                
+                // For filtered methods without context
+                val displayDepth = depthMgr.onMethodEnter(0)
+                
+                // Format with managed depth and print
                 val adjustedEvent = when (traceEvent) {
-                    is TraceEvent.Enter -> traceEvent.copy(depth = filteredDepthCounter.get())
-                    is TraceEvent.Exit -> traceEvent.copy(depth = filteredDepthCounter.get())
+                    is TraceEvent.Enter -> traceEvent.copy(depth = displayDepth)
+                    is TraceEvent.Exit -> traceEvent.copy(depth = displayDepth)
                 }
                 println(config.formatter(adjustedEvent))
-                
-                filteredDepthCounter.set(filteredDepthCounter.get() + 1)
             } finally {
                 isTracing.set(false)
             }
@@ -207,10 +297,11 @@ class MethodTraceAdvice {
                 val passesFilter = config.filter(traceEvent)
                 
                 if (passesFilter) {
-                    val currentDepth = filteredDepthCounter.get() ?: 0
-                    val adjustedEvent = (traceEvent as TraceEvent.Exit).copy(depth = maxOf(0, currentDepth - 1))
+                    // Use depth manager for proper depth management
+                    val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
+                    val exitDepth = depthMgr.onMethodExit()
+                    val adjustedEvent = (traceEvent as TraceEvent.Exit).copy(depth = maxOf(0, exitDepth - 1))
                     println(config.formatter(adjustedEvent))
-                    filteredDepthCounter.set(maxOf(0, currentDepth - 1))
                 }
                 
                 // Generate context Exit events if enabled and we have queued exits  
@@ -233,7 +324,8 @@ class MethodTraceAdvice {
         @JvmStatic
         fun cleanup() {
             depthCounter.remove()
-            filteredDepthCounter.remove()
+            depthManager.get()?.clear()
+            depthManager.remove()
             isTracing.remove()
             callStack.remove()
             contextExitTracker.remove()
