@@ -27,7 +27,6 @@ class ArgumentFilterTest {
                     // Allow Exit events for the same class to maintain trace completeness
                     isRightClass
                 }
-                else -> false
             }
         }
         .beforeContextSize(1)
@@ -95,8 +94,8 @@ class DepthFilterTest {
         val level2Count = traceLines.count { 
             it.contains("→") && it.contains("level2")
         }
-        // level2 appears twice - once as context and once as the filtered method
-        assertEquals("level2 should appear exactly twice", 2, level2Count)
+        // level2 appears once as filtered method (no duplication)
+        assertEquals("level2 should appear exactly once", 1, level2Count)
         
         val level3Count = traceLines.count { 
             it.contains("→") && it.contains("level3") 
@@ -104,7 +103,7 @@ class DepthFilterTest {
         assertEquals("level3 should appear exactly once", 1, level3Count)
         
         // Check that the depth filter is working - only methods with depth >= 2 should be filtered
-        assertTrue("Depth filter should show level2 and level3", level2Count == 2 && level3Count == 1)
+        assertTrue("Depth filter should show level2 and level3", level2Count == 1 && level3Count == 1)
     }
 }
 
