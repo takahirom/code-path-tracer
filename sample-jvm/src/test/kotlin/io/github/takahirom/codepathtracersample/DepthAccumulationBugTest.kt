@@ -6,10 +6,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * TDD Test to demonstrate and fix the depth accumulation bug
- * 
- * Problem: When using beforeContextSize > 0 with filter, depth values accumulate
- * to very large numbers (e.g., 17395) instead of staying consistent.
+ * Test for depth accumulation bug where depth values grow to very large numbers
+ * when using beforeContextSize > 0 with filter.
  */
 class DepthAccumulationBugTest {
     
