@@ -109,7 +109,7 @@ sealed class TraceEvent {
      */
     fun defaultFormat(maxLength: Int = 30, maxIndentDepth: Int = 60): String {
         val indent = if (depth < maxIndentDepth) {
-            "  ".repeat(depth)
+            " ".repeat(depth)
         } else {
             " ".repeat(maxIndentDepth) + "${depth}⇢"
         }

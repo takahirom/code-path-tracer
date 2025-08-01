@@ -35,14 +35,14 @@ class NestedContextTest {
         
         // Verify exact sequence with proper indentation
         assertEquals("Should show context enter for middle", "→ SimpleNestedHierarchy.middle()", traceLines[0])
-        assertEquals("Should show method enter for inner", "  → SimpleNestedHierarchy.inner()", traceLines[1])
-        assertEquals("Should show method exit for inner", "  ← SimpleNestedHierarchy.inner", traceLines[2])
+        assertEquals("Should show method enter for inner", " → SimpleNestedHierarchy.inner()", traceLines[1])
+        assertEquals("Should show method exit for inner", " ← SimpleNestedHierarchy.inner", traceLines[2])
         assertEquals("Should show context exit for middle", "← SimpleNestedHierarchy.middle", traceLines[3])
         
         // Verify indentation levels
         assertTrue("Context enter should have no indentation", traceLines[0].startsWith("→"))
-        assertTrue("Method enter should be indented", traceLines[1].startsWith("  →"))
-        assertTrue("Method exit should be indented", traceLines[2].startsWith("  ←"))
+        assertTrue("Method enter should be indented", traceLines[1].startsWith(" →"))
+        assertTrue("Method exit should be indented", traceLines[2].startsWith(" ←"))
         assertTrue("Context exit should have no indentation", traceLines[3].startsWith("←"))
         
         // Verify outer method is NOT shown (beyond beforeContextSize=1)
@@ -78,16 +78,16 @@ class DeepNestedContextTest {
         
         // Verify the sequence shows 2 levels of context
         assertEquals("Should show context enter for middle", "→ DeepNestHierarchy.middle()", traceLines[0])
-        assertEquals("Should show context enter for inner", "  → DeepNestHierarchy.inner()", traceLines[1])
-        assertEquals("Should show method enter for deepest", "    → DeepNestHierarchy.deepest()", traceLines[2])
-        assertEquals("Should show method exit for deepest", "    ← DeepNestHierarchy.deepest", traceLines[3])
-        assertEquals("Should show context exit for inner", "  ← DeepNestHierarchy.inner", traceLines[4])
+        assertEquals("Should show context enter for inner", " → DeepNestHierarchy.inner()", traceLines[1])
+        assertEquals("Should show method enter for deepest", "  → DeepNestHierarchy.deepest()", traceLines[2])
+        assertEquals("Should show method exit for deepest", "  ← DeepNestHierarchy.deepest", traceLines[3])
+        assertEquals("Should show context exit for inner", " ← DeepNestHierarchy.inner", traceLines[4])
         assertEquals("Should show context exit for middle", "← DeepNestHierarchy.middle", traceLines[5])
         
-        // Verify correct indentation levels (0, 2, 4 spaces)
+        // Verify correct indentation levels (0, 1, 2 spaces)
         assertEquals("Middle context should have 0 spaces", 0, traceLines[0].takeWhile { it == ' ' }.length)
-        assertEquals("Inner context should have 2 spaces", 2, traceLines[1].takeWhile { it == ' ' }.length)
-        assertEquals("Deepest method should have 4 spaces", 4, traceLines[2].takeWhile { it == ' ' }.length)
+        assertEquals("Inner context should have 1 space", 1, traceLines[1].takeWhile { it == ' ' }.length)
+        assertEquals("Deepest method should have 2 spaces", 2, traceLines[2].takeWhile { it == ' ' }.length)
         
         // Verify outer method is NOT shown (beyond beforeContextSize=2)
         assertFalse("Should not show outer method", traceLines.any { it.contains("outer") })
