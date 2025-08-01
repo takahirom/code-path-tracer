@@ -224,13 +224,6 @@ object CodePathTracerAgent {
                 // Add class as candidate (filtering will happen at method level)
                 candidates.add(clazz)
 
-                // Look for inner classes that might be interesting
-                if (hasInnerClassesOfInterest(clazz, config)) {
-                    candidates.add(clazz)
-                    if (CodePathTracer.DEBUG) {
-                        println("[MethodTrace] Candidate found: ${clazz.name} (reason: inner classes)")
-                    }
-                }
                 
             } catch (_: Exception) {
                 // Skip problematic classes silently
@@ -248,13 +241,6 @@ object CodePathTracerAgent {
     }
     
     
-    private fun hasInnerClassesOfInterest(clazz: Class<*>, @Suppress("UNUSED_PARAMETER") config: CodePathTracer.Config): Boolean {
-        // Look for inner classes ($) that might be of interest
-        return clazz.name.contains("$") && 
-               !clazz.name.contains("Lambda") &&
-               !clazz.name.contains("lambda") &&
-               !clazz.name.contains("methodTraceRule")
-    }
     
     
     private fun isRobolectricSandboxEnvironment(): Boolean {
