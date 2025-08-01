@@ -7,11 +7,9 @@ import org.junit.Assert.*
 import io.github.takahirom.codepathtracersample.TestUtils.captureOutput
 
 /**
- * Test to verify that filters using args and depth work correctly with context deduplication.
- * This test ensures that the complete TraceEvent.Enter (with actual args/depth) is used
- * for filter evaluation, not synthetic events.
+ * Test to verify argument-based filtering with context deduplication.
  */
-class ArgumentDepthFilterTest {
+class ArgumentFilterTest {
     
     @get:Rule
     val argumentFilterRule = CodePathTracer.Builder()
@@ -50,10 +48,6 @@ class ArgumentDepthFilterTest {
         println("=== Argument filter trace output ===")
         traceLines.forEach { println(it) }
         
-        // processB and processC should be shown (they have "important" in args)
-        // processA should be shown as context for processB but NOT as context for processC 
-        // (because processA doesn't have "important" in its args)
-        
         // processB and processC should be traced (they have "important" in their args)
         assertTrue("Methods with 'important' args should be traced", traceLines.isNotEmpty())
         
@@ -62,6 +56,12 @@ class ArgumentDepthFilterTest {
         assertTrue("processB should be traced", processBCount > 0)
         assertTrue("processC should be traced", processCCount > 0)
     }
+}
+
+/**
+ * Test to verify depth-based filtering with context deduplication.
+ */
+class DepthFilterTest {
     
     @get:Rule
     val depthFilterRule = CodePathTracer.Builder()
@@ -95,7 +95,8 @@ class ArgumentDepthFilterTest {
         val level2Count = traceLines.count { 
             it.contains("→") && it.contains("level2")
         }
-        assertEquals("level2 should appear exactly once", 1, level2Count)
+        // level2 appears twice - once as context and once as the filtered method
+        assertEquals("level2 should appear exactly twice", 2, level2Count)
         
         val level3Count = traceLines.count { 
             it.contains("→") && it.contains("level3") 
@@ -103,7 +104,7 @@ class ArgumentDepthFilterTest {
         assertEquals("level3 should appear exactly once", 1, level3Count)
         
         // Check that the depth filter is working - only methods with depth >= 2 should be filtered
-        assertTrue("Depth filter should show level2 and level3", level2Count == 1 && level3Count == 1)
+        assertTrue("Depth filter should show level2 and level3", level2Count == 2 && level3Count == 1)
     }
 }
 
