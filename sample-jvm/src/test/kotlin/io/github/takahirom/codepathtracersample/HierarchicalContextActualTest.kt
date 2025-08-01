@@ -19,16 +19,12 @@ class HierarchicalContextActualTest {
     
     @Test
     fun testHierarchicalContextWithRealTracing() {
-        println("=== Testing hierarchical context with actual tracing ===")
-        
         val output = captureOutput {
             val calculator = HierarchicalCalculator()
             // This should create a call chain: testHierarchicalContextWithRealTracing -> complexCalculation -> add
             val result = calculator.complexCalculation(5, 3)
             assertEquals("Result should be correct", 24, result)
         }
-        
-        println("=== Context test completed ===")
         
         // Verify trace output contains expected context hierarchy
         val traceLines = output.lines().filter { it.contains("→") || it.contains("←") }
@@ -53,21 +49,17 @@ class HierarchicalContextActualTest {
 
 class HierarchicalCalculator {
     fun add(a: Int, b: Int): Int {
-        println("Calculator: Adding $a + $b")
         return a + b
     }
     
     fun multiply(a: Int, b: Int): Int {
-        println("Calculator: Multiplying $a * $b")
         return a * b
     }
     
     fun complexCalculation(x: Int, y: Int): Int {
-        println("Calculator: Starting complex calculation with $x and $y")
         val sum = add(x, y)  // This should show context
         val doubled = multiply(sum, 2)
         val final = add(doubled, x + y)  // This should also show context
-        println("Calculator: Complex calculation complete")
         return final
     }
 }

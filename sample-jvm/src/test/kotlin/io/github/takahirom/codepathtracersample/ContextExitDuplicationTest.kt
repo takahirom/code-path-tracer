@@ -24,14 +24,10 @@ class ContextExitDuplicationTest {
     
     @Test
     fun testContextExitTrackingWithDuplicationPrevention() {
-        println("=== Testing context exit tracking and duplication prevention ===")
-        
         val output = captureOutput {
             val test = DuplicationTestHierarchy()
             test.a()  // a -> b1, a -> b2
         }
-        
-        println("=== Test completed - A should appear only once for enter and once for exit ===")
         
         // Extract trace lines (lines with → or ←) - preserve indentation!
         val traceLines = output.lines()
@@ -101,13 +97,9 @@ class ContextExitDuplicationTest {
     
     @Test
     fun testNestedContextExitTracking() {
-        println("=== Testing nested context exit tracking ===")
-        
         // This test demonstrates that the current rule filters b1/b2, not inner methods
         val test = NestedTestHierarchy()
         test.outer()  // outer -> middle -> inner (no output because filter doesn't match)
-        
-        println("=== Nested test completed ===")
         
         // Since the current rule filters b1/b2 and NestedTestHierarchy has outer/middle/inner,
         // no trace output is expected. This test verifies the methods run without error.
@@ -121,32 +113,29 @@ class ContextExitDuplicationTest {
 
 class DuplicationTestHierarchy {
     fun a() {
-        println("Executing a")
         b1()
         b2()
     }
     
     fun b1() {
-        println("Executing b1")
+        // Method implementation
     }
     
     fun b2() {
-        println("Executing b2") 
+        // Method implementation
     }
 }
 
 class NestedTestHierarchy {
     fun outer() {
-        println("Executing outer")
         middle()
     }
     
     fun middle() {
-        println("Executing middle")
         inner()
     }
     
     fun inner() {
-        println("Executing inner")
+        // Method implementation
     }
 }

@@ -23,14 +23,10 @@ class NestedContextTest {
     
     @Test
     fun testSingleLevelNestedContext() {
-        println("=== Testing single level nested context (beforeContextSize=1) ===")
-        
         val output = captureOutput {
             val test = SimpleNestedHierarchy()
             test.outer()  // outer -> middle -> inner (only inner filtered, middle shown as context)
         }
-        
-        println("=== Nested context test completed ===")
         
         val traceLines = output.lines().filter { it.contains("→") || it.contains("←") }
         
@@ -70,14 +66,10 @@ class DeepNestedContextTest {
     
     @Test
     fun testMultiLevelNestedContext() {
-        println("=== Testing multi-level nested context (beforeContextSize=2) ===")
-        
         val output = captureOutput {
             val test = DeepNestHierarchy()
             test.outer()  // outer -> middle -> inner -> deepest
         }
-        
-        println("=== Deep nested context test completed ===")
         
         val traceLines = output.lines().filter { it.contains("→") || it.contains("←") }
         
@@ -104,37 +96,32 @@ class DeepNestedContextTest {
 
 class SimpleNestedHierarchy {
     fun outer() {
-        println("Executing outer")
         middle()
     }
     
     fun middle() {
-        println("Executing middle")
         inner()
     }
     
     fun inner() {
-        println("Executing inner")
+        // Method implementation
     }
 }
 
 class DeepNestHierarchy {
     fun outer() {
-        println("Executing outer")
         middle()
     }
     
     fun middle() {
-        println("Executing middle")
         inner()
     }
     
     fun inner() {
-        println("Executing inner")
         deepest()
     }
     
     fun deepest() {
-        println("Executing deepest")
+        // Method implementation
     }
 }
