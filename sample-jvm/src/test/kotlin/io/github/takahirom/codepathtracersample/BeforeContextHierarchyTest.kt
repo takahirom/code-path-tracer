@@ -49,17 +49,17 @@ class BeforeContextHierarchyTest {
         val contextExits = traceLines.count { it.contains("← TestHierarchy.b") }
         assertEquals("Context exit for b should appear exactly once", 1, contextExits)
         
-        // Verify proper format (no indentation in current implementation) 
+        // Verify proper format (indented traces have space prefix) 
         assertTrue("Context enter should start with →", traceLines[0].startsWith("→"))
-        assertTrue("Method enter should start with →", traceLines[1].startsWith("→"))
-        assertTrue("Method exit should start with ←", traceLines[2].startsWith("←"))
+        assertTrue("Method enter should start with space and →", traceLines[1].startsWith(" →"))
+        assertTrue("Method exit should start with space and ←", traceLines[2].startsWith(" ←"))
         assertTrue("Context exit should start with ←", traceLines[3].startsWith("←"))
         
-        // Verify format consistency (no indentation in current implementation)
+        // Verify format consistency (hierarchical indentation)
         val contextDepth = traceLines[0].takeWhile { it == ' ' }.length
         val methodDepth = traceLines[1].takeWhile { it == ' ' }.length
         assertEquals("Context methods should have depth 0 (no indentation)", 0, contextDepth)
-        assertEquals("Methods should also have depth 0 (no indentation)", 0, methodDepth)
+        assertEquals("Filtered methods should have depth 1 (1 space indentation)", 1, methodDepth)
         assertEquals("Method exit should have same depth as method enter", methodDepth, traceLines[2].takeWhile { it == ' ' }.length)
     }
     
