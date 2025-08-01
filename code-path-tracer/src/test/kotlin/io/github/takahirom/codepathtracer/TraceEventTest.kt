@@ -37,8 +37,8 @@ class TraceEventTest {
         )
         
         val formatted = enterEvent.defaultFormat()
-        // Should have 4 spaces indent (depth 2 * 2) and compressed class name in args
-        assertTrue(formatted.startsWith("    → MyClass.testMethod(hello, 123)"))
+        // Should have 2 spaces indent (depth 2 * 1) and compressed class name in args
+        assertTrue(formatted.startsWith("  → MyClass.testMethod(hello, 123)"))
     }
     
     @Test 
