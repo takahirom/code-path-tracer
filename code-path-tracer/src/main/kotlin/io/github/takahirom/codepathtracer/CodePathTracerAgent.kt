@@ -143,6 +143,10 @@ object CodePathTracerAgent {
                     .or(ElementMatchers.nameContains<NamedElement>("\$\$Lambda\$"))
                     .or(ElementMatchers.nameContains<NamedElement>("\$lambda\$"))
                     .or(ElementMatchers.nameContains<NamedElement>("JvmMethodTraceTest\$methodTraceRule\$"))
+                    // Ignore JDK internal reflection classes that cause ClassNotFoundException
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("jdk.internal.reflect.GeneratedConstructorAccessor"))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("jdk.internal.reflect.GeneratedMethodAccessor"))
+                    .or(ElementMatchers.nameStartsWith<NamedElement>("jdk.internal.reflect.GeneratedSerializationConstructorAccessor"))
             )
             .type(ElementMatchers.not(ElementMatchers.isInterface())
                 .and(ElementMatchers.not(ElementMatchers.isAbstract()))

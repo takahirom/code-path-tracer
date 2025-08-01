@@ -140,7 +140,13 @@ class MethodTraceAdvice {
         
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
-        fun methodEnter(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.AllArguments args: Array<Any?>) {
+        fun methodEnter(
+            // @net.bytebuddy.asm.Advice.Origin method: String,
+            @net.bytebuddy.asm.Advice.Origin clazz: Class<*>,
+            @net.bytebuddy.asm.Advice.Origin("#m") methodName: String,
+            @net.bytebuddy.asm.Advice.Origin("#d") descriptor: String,
+            @net.bytebuddy.asm.Advice.AllArguments args: Array<Any?>
+        ) {
             // Prevent infinite recursion
             if (isTracing.get()) return
             
@@ -152,11 +158,13 @@ class MethodTraceAdvice {
             
             val currentCallPath = getCallPath(config)
             
-            // Create AdviceData and convert to TraceEvent using traceEventGenerator
+            // Create AdviceData with reliable ByteBuddy @Origin information
             val adviceData = AdviceData.Enter(
-                method = method,
                 args = args,
-                depth = depth
+                depth = depth,
+                clazz = clazz,           // Reliable class information
+                methodName = methodName,  // Reliable method name (<init> for constructors)
+                descriptor = descriptor   // Method descriptor
             )
             var traceEvent = config.traceEventGenerator(adviceData) ?: return
             
@@ -183,6 +191,42 @@ class MethodTraceAdvice {
                 if (!config.filter(traceEvent)) {
                     return  // Don't log filtered methods, but depth was already incremented
                 }
+                
+                /*
+                 * Available ByteBuddy @Origin information:
+                 * 
+                 * method (String): 
+                 *   - Normal method: "public final void io.github.takahirom.codepathtracersample.ConstructorTest.testConstructorMethodName()"
+                 *   - Constructor: "public io.github.takahirom.codepathtracersample.TestClass(java.lang.String)"
+                 * 
+                 * executable (java.lang.reflect.Executable):
+                 *   - executable.declaringClass.name: Full class name "io.github.takahirom.codepathtracersample.TestClass"
+                 *   - executable.name: 
+                 *     * Normal method: Method name "testConstructorMethodName"
+                 *     * Constructor: Full class name "io.github.takahirom.codepathtracersample.TestClass" (problematic!)
+                 *   - executable is Constructor<*>: true/false for constructor detection
+                 *   - constructor.parameterTypes: [class java.lang.String] (if constructor)
+                 * 
+                 * clazz (Class<*>):
+                 *   - clazz.name: Full class name "io.github.takahirom.codepathtracersample.TestClass"
+                 *   - clazz.simpleName: Simple class name "TestClass"
+                 * 
+                 * Custom patterns (@Origin("#pattern")):
+                 *   - #t: declaring type (class name)
+                 *   - #m: method name ("<init>" for constructors, "<clinit>" for static initializers) 
+                 *   - #d: method descriptor "(Ljava/lang/String;)V"
+                 *   - #s: method signature (if available)
+                 *   - #r: return type
+                 *   - #l: line number (rarely available, needs debug info)
+                 *   - #p: property name
+                 * 
+                 * Recommended approach:
+                 *   - className: clazz.name (full class name)
+                 *   - methodName: executable.name (for normal methods) or "<init>" (for constructors)
+                 *   - isConstructor: executable is Constructor<*>
+                 *   - lineNumber: lineNumber.toIntOrNull() (if debug info available)
+                 */
+                
                 
                 // Generate context Enter events if enabled
                 if (config.beforeContextSize > 0) {
@@ -258,7 +302,13 @@ class MethodTraceAdvice {
         
         @JvmStatic  
         @net.bytebuddy.asm.Advice.OnMethodExit
-        fun methodExit(@net.bytebuddy.asm.Advice.Origin method: String, @net.bytebuddy.asm.Advice.Return(typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) returnValue: Any?) {
+        fun methodExit(
+            // @net.bytebuddy.asm.Advice.Origin method: String,
+            @net.bytebuddy.asm.Advice.Origin clazz: Class<*>,
+            @net.bytebuddy.asm.Advice.Origin("#m") methodName: String,
+            @net.bytebuddy.asm.Advice.Origin("#d") descriptor: String,
+            @net.bytebuddy.asm.Advice.Return(typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) returnValue: Any?
+        ) {
             // Prevent infinite recursion
             if (isTracing.get()) return
             
@@ -270,11 +320,13 @@ class MethodTraceAdvice {
             
             val currentCallPath = getCallPath(config)
             
-            // Create AdviceData and convert to TraceEvent using traceEventGenerator
+            // Create AdviceData with reliable ByteBuddy @Origin information
             val adviceData = AdviceData.Exit(
-                method = method,
                 returnValue = returnValue,
-                depth = depth
+                depth = depth,
+                clazz = clazz,           // Reliable class information
+                methodName = methodName,  // Reliable method name (<init> for constructors)
+                descriptor = descriptor   // Method descriptor
             )
             var traceEvent = config.traceEventGenerator(adviceData) ?: return
             
