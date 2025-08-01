@@ -62,12 +62,19 @@ Code Path Tracer solves these problems by providing **visual execution traces** 
 
 ## 📦 Installation
 
-**Coming Soon!** 🚧
+### Maven Central (Recommended)
 
-We're working on making CodePathTracer available through:
-- Maven Central
+Add to your `build.gradle` dependencies:
 
-For now, clone and build locally:
+```kotlin
+dependencies {
+    testImplementation("io.github.takahirom.codepathtracer:code-path-tracer:[latest version]")
+}
+```
+
+### Local Build (Development)
+
+For development or latest features:
 ```bash
 git clone https://github.com/takahirom/code-path-finder.git
 ./gradlew publishToMavenLocal
