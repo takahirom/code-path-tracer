@@ -151,9 +151,6 @@ class MethodTraceAdvice {
                             )
                             println(config.formatter(contextEnterEvent))
                         }
-                        
-                        // Update filtered depth counter to account for shown context methods
-                        filteredDepthCounter.set(filteredDepthCounter.get() + methodsToShow.size)
                     }
                 }
                 
