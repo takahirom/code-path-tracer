@@ -99,7 +99,7 @@ class JvmMethodTraceTest {
         CodePathTracerAgent.initialize(
             CodePathTracer.Config()
         )
-        val clazz = Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
+        val clazz = SampleCalculator::class.java
         assert(clazz != null) { "Expected SampleCalculator class to be loadable" }
         
         val calculator = SampleCalculator()
