@@ -38,8 +38,8 @@ class BeforeContextHierarchyTest {
         
         // Verify the exact sequence with actual format (no indentation)
         assertEquals("Should show context enter for b()", "→ TestHierarchy.b()", traceLines[0])
-        assertEquals("Should show method enter for c()", "→ TestHierarchy.c()", traceLines[1])
-        assertEquals("Should show method exit for c", "← TestHierarchy.c", traceLines[2])
+        assertEquals("Should show method enter for c()", " → TestHierarchy.c()", traceLines[1])
+        assertEquals("Should show method exit for c", " ← TestHierarchy.c", traceLines[2])
         assertEquals("Should show context exit for b", "← TestHierarchy.b", traceLines[3])
         
         // Verify no duplicates

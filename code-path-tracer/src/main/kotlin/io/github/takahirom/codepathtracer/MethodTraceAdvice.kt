@@ -142,7 +142,6 @@ class MethodTraceAdvice {
         @net.bytebuddy.asm.Advice.OnMethodEnter
         fun methodEnter(
             @net.bytebuddy.asm.Advice.Origin method: String,
-            @net.bytebuddy.asm.Advice.Origin executable: java.lang.reflect.Executable,
             @net.bytebuddy.asm.Advice.Origin clazz: Class<*>,
             @net.bytebuddy.asm.Advice.Origin("#m") methodName: String,
             @net.bytebuddy.asm.Advice.Origin("#d") descriptor: String,
@@ -305,7 +304,6 @@ class MethodTraceAdvice {
         @net.bytebuddy.asm.Advice.OnMethodExit
         fun methodExit(
             @net.bytebuddy.asm.Advice.Origin method: String,
-            @net.bytebuddy.asm.Advice.Origin executable: java.lang.reflect.Executable,
             @net.bytebuddy.asm.Advice.Origin clazz: Class<*>,
             @net.bytebuddy.asm.Advice.Origin("#m") methodName: String,
             @net.bytebuddy.asm.Advice.Origin("#d") descriptor: String,
