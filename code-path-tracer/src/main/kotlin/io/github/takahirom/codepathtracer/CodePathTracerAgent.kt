@@ -221,14 +221,9 @@ object CodePathTracerAgent {
                 // Skip classes that would be ignored anyway
                 if (wouldBeIgnored(clazz.name)) continue
                 
-                // Test if this class would match the current filter
-                if (wouldMatchFilter(clazz, config)) {
-                    candidates.add(clazz)
-                    if (CodePathTracer.DEBUG) {
-                        println("[MethodTrace] Candidate found: ${clazz.name} (reason: filter match)")
-                    }
-                }
-                
+                // Add class as candidate (filtering will happen at method level)
+                candidates.add(clazz)
+
                 // Look for inner classes that might be interesting
                 if (hasInnerClassesOfInterest(clazz, config)) {
                     candidates.add(clazz)
@@ -252,20 +247,6 @@ object CodePathTracerAgent {
                className.contains("JvmMethodTraceTest\$methodTraceRule\$")
     }
     
-    private fun wouldMatchFilter(clazz: Class<*>, config: CodePathTracer.Config): Boolean {
-        try {
-            // Create a dummy trace event to test the filter
-            val dummyEvent = TraceEvent.Enter(
-                className = clazz.name,
-                methodName = "testMethod",
-                args = emptyArray(),
-                depth = 0
-            )
-            return config.filter(dummyEvent)
-        } catch (_: Exception) {
-            return false
-        }
-    }
     
     private fun hasInnerClassesOfInterest(clazz: Class<*>, @Suppress("UNUSED_PARAMETER") config: CodePathTracer.Config): Boolean {
         // Look for inner classes ($) that might be of interest
