@@ -45,6 +45,10 @@ class DepthAccumulationBugTest {
             testCalculator.add(i, 1)
         }
         
+        // Ensure we actually captured depth data before checking limits
+        assert(capturedDepths.isNotEmpty()) { 
+            "No depth data was captured - check your tracing filter configuration" 
+        }
         
         // The bug: depth should stay reasonable (< 20), not accumulate to 1000+
         // If the bug exists, later calls will have much higher depth values
