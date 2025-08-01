@@ -18,23 +18,18 @@ class ArgumentDepthFilterTest {
         .filter { event ->
             // Filter based on arguments - only methods with "important" in first argument
             val isRightClass = event.className.contains("ArgumentFilterHierarchy")
-            val isEnterEvent = event is io.github.takahirom.codepathtracer.TraceEvent.Enter
             
-            println("DEBUG Filter: class=$isRightClass, enter=$isEnterEvent, className=${event.className}, method=${event.methodName}")
-            
-            if (isEnterEvent) {
-                val enterEvent = event as io.github.takahirom.codepathtracer.TraceEvent.Enter
-                val hasArgs = enterEvent.args.isNotEmpty()
-                val hasImportant = hasArgs && enterEvent.args[0].toString().contains("important")
-                
-                println("DEBUG Enter: hasArgs=$hasArgs, important=$hasImportant")
-                if (hasArgs) {
-                    println("DEBUG Args: ${enterEvent.args.joinToString { it.toString() }}")
+            when (event) {
+                is io.github.takahirom.codepathtracer.TraceEvent.Enter -> {
+                    val hasArgs = event.args.isNotEmpty()
+                    val hasImportant = hasArgs && event.args[0].toString().contains("important")
+                    isRightClass && hasArgs && hasImportant
                 }
-                
-                isRightClass && hasArgs && hasImportant
-            } else {
-                false
+                is io.github.takahirom.codepathtracer.TraceEvent.Exit -> {
+                    // Allow Exit events for the same class to maintain trace completeness
+                    isRightClass
+                }
+                else -> false
             }
         }
         .beforeContextSize(1)
@@ -59,11 +54,13 @@ class ArgumentDepthFilterTest {
         // processA should be shown as context for processB but NOT as context for processC 
         // (because processA doesn't have "important" in its args)
         
-        val processBEnterCount = traceLines.count { 
-            it.contains("→") && it.contains("processB")
-        }
-        // Since no methods with "important" args are called, no output expected
-        assertEquals("No methods should be traced (no 'important' in args)", 0, traceLines.size)
+        // processB and processC should be traced (they have "important" in their args)
+        assertTrue("Methods with 'important' args should be traced", traceLines.isNotEmpty())
+        
+        val processBCount = traceLines.count { it.contains("processB") }
+        val processCCount = traceLines.count { it.contains("processC") }
+        assertTrue("processB should be traced", processBCount > 0)
+        assertTrue("processC should be traced", processCCount > 0)
     }
     
     @get:Rule
