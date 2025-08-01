@@ -91,6 +91,9 @@ class MethodTraceAdvice {
             
             val depth = depthCounter.get() ?: 0
             
+            // Always increment depth for ALL methods, regardless of filter
+            depthCounter.set(depth + 1)
+            
             val currentCallPath = getCallPath(config)
             
             // Create AdviceData and convert to TraceEvent using traceEventGenerator
@@ -122,8 +125,7 @@ class MethodTraceAdvice {
                 
                 // Apply filter
                 if (!config.filter(traceEvent)) {
-                    depthCounter.set(depth + 1)  // Update depth but don't log
-                    return
+                    return  // Don't log filtered methods, but depth was already incremented
                 }
                 
                 // Generate context Enter events if enabled
@@ -162,7 +164,6 @@ class MethodTraceAdvice {
                 }
                 println(config.formatter(adjustedEvent))
                 
-                depthCounter.set(depth + 1)
                 filteredDepthCounter.set(filteredDepthCounter.get() + 1)
             } finally {
                 isTracing.set(false)

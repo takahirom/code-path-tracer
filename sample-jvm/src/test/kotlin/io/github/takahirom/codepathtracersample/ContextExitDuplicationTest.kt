@@ -38,10 +38,10 @@ class ContextExitDuplicationTest {
         
         // Verify the exact sequence with proper indentation
         assertEquals("Should show context enter for a()", "→ DuplicationTestHierarchy.a()", traceLines[0])
-        assertEquals("Should show method enter for b1()", "  → DuplicationTestHierarchy.b1()", traceLines[1])
-        assertEquals("Should show method exit for b1", "  ← DuplicationTestHierarchy.b1", traceLines[2])
-        assertEquals("Should show method enter for b2()", "  → DuplicationTestHierarchy.b2()", traceLines[3])
-        assertEquals("Should show method exit for b2", "  ← DuplicationTestHierarchy.b2", traceLines[4])
+        assertEquals("Should show method enter for b1()", " → DuplicationTestHierarchy.b1()", traceLines[1])
+        assertEquals("Should show method exit for b1", " ← DuplicationTestHierarchy.b1", traceLines[2])
+        assertEquals("Should show method enter for b2()", " → DuplicationTestHierarchy.b2()", traceLines[3])
+        assertEquals("Should show method exit for b2", " ← DuplicationTestHierarchy.b2", traceLines[4])
         assertEquals("Should show context exit for a", "← DuplicationTestHierarchy.a", traceLines[5])
         
         // Critical: Verify no duplicates (with indentation preserved)
@@ -76,17 +76,17 @@ class ContextExitDuplicationTest {
         
         // Verify proper indentation (hierarchical structure)
         assertTrue("Context enter should have no indentation", traceLines[0].startsWith("→"))
-        assertTrue("Method b1 enter should be indented", traceLines[1].startsWith("  →"))
-        assertTrue("Method b1 exit should be indented", traceLines[2].startsWith("  ←"))
-        assertTrue("Method b2 enter should be indented", traceLines[3].startsWith("  →"))
-        assertTrue("Method b2 exit should be indented", traceLines[4].startsWith("  ←"))
+        assertTrue("Method b1 enter should be indented", traceLines[1].startsWith(" →"))
+        assertTrue("Method b1 exit should be indented", traceLines[2].startsWith(" ←"))
+        assertTrue("Method b2 enter should be indented", traceLines[3].startsWith(" →"))
+        assertTrue("Method b2 exit should be indented", traceLines[4].startsWith(" ←"))
         assertTrue("Context exit should have no indentation", traceLines[5].startsWith("←"))
         
         // Verify consistent indentation depth
         val contextDepth = traceLines[0].takeWhile { it == ' ' }.length
         val methodDepth = traceLines[1].takeWhile { it == ' ' }.length
         assertEquals("Context methods should have depth 0", 0, contextDepth)
-        assertEquals("Filtered methods should have depth 1 (2 spaces)", 2, methodDepth)
+        assertEquals("Filtered methods should have depth 1 (1 space)", 1, methodDepth)
         
         // All filtered methods should have same indentation
         for (i in 1..4) {

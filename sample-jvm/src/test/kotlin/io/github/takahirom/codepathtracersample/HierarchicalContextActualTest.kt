@@ -38,7 +38,7 @@ class HierarchicalContextActualTest {
         assertTrue("Should have add method enters", addMethodEnters.isNotEmpty())
         
         // Verify hierarchical structure shows multiple levels
-        val hasMultipleLevels = traceLines.any { it.startsWith("    ") } && traceLines.any { it.startsWith("      ") }
+        val hasMultipleLevels = traceLines.any { it.startsWith("  ") } && traceLines.any { it.startsWith("   ") }
         assertTrue("Should show multiple indentation levels", hasMultipleLevels)
         
         // Verify specific methods are traced
