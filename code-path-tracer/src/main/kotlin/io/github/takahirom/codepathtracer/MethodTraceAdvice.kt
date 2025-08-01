@@ -3,6 +3,9 @@ package io.github.takahirom.codepathtracer
 /**
  * Data class to represent a method call in the call stack
  */
+/**
+ * Data class to represent a method call context (for backward compatibility)
+ */
 data class CallContext(
     val className: String,
     val methodName: String,
@@ -97,7 +100,7 @@ data class ContextExitTracker(
      * Returns list of context methods that should actually be shown (excluding duplicates).
      * These should be added in reverse order (deepest first) so they can be popped correctly
      */
-    fun queueContextExits(contextMethods: List<CallContext>, startingDepth: Int): List<CallContext> {
+    fun queueContextExits(contextMethods: List<TraceEvent.Enter>, startingDepth: Int): List<TraceEvent.Enter> {
         return contextMethods.mapIndexedNotNull { i, method ->
             val methodKey = ContextMethodKey(method.className, method.methodName, method.depth)
             if (shownContextEnters.add(methodKey)) {
@@ -131,11 +134,14 @@ class MethodTraceAdvice {
         private val actualDepthCounter = ThreadLocal.withInitial { 0 }
         private val depthManager = ThreadLocal<DepthManager>()
         private val isTracing = ThreadLocal.withInitial { false }
-        private val callStack = ThreadLocal<MutableList<CallContext>>()
+        private val callStack = ThreadLocal<MutableList<TraceEvent.Enter>>()
         private val contextExitTracker = ThreadLocal<ContextExitTracker>()
         
         private fun getCallPath(config: CodePathTracer.Config): List<CallContext> {
-            return if (config.beforeContextSize > 0) callStack.get() ?: emptyList() else emptyList()
+            return if (config.beforeContextSize > 0) {
+                // Convert TraceEvent.Enter to CallContext for backward compatibility
+                callStack.get()?.map { CallContext(it.className, it.methodName, it.depth) } ?: emptyList()
+            } else emptyList()
         }
         
         @JvmStatic
@@ -182,9 +188,9 @@ class MethodTraceAdvice {
             try {
                 isTracing.set(true)
                 
-                // Add to call stack if enabled
+                // Add to call stack if enabled - store the complete TraceEvent.Enter
                 if (config.beforeContextSize > 0) {
-                    callStack.get()?.add(CallContext(traceEvent.className, traceEvent.methodName, depth))
+                    callStack.get()?.add(traceEvent as TraceEvent.Enter)
                 }
                 
                 // Apply filter
@@ -232,8 +238,17 @@ class MethodTraceAdvice {
                 if (config.beforeContextSize > 0) {
                     val stack = callStack.get()
                     if (stack != null && stack.size > 1) {
-                        val contextMethods = stack.takeLast(minOf(config.beforeContextSize + 1, stack.size))
+                        val allContextMethods = stack.takeLast(minOf(config.beforeContextSize + 1, stack.size))
                             .dropLast(1) // Remove current method
+                        
+                        // Filter out context methods that would match the current filter
+                        // to prevent duplication (same method appearing as both context and filtered method)
+                        // Now we use the actual TraceEvent.Enter with complete information (args, depth, etc.)
+                        val logicalContextHierarchy = allContextMethods.filter { contextEvent ->
+                            val wouldPassFilter = config.filter(contextEvent)
+                            // Only include context methods that would NOT pass the filter
+                            !wouldPassFilter
+                        }
                         
                         // Initialize depth manager and context exit tracker if needed
                         val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
@@ -241,14 +256,12 @@ class MethodTraceAdvice {
                         
                         // Calculate depths using the new depth manager
                         val baseDepth = depthMgr.getCurrentDepth()
-                        val methodsToShow = tracker.queueContextExits(contextMethods, baseDepth)
+                        val displayableContextMethods = tracker.queueContextExits(logicalContextHierarchy, baseDepth)
                         
                         // Generate Enter events only for methods that should be shown
-                        methodsToShow.forEachIndexed { i, contextMethod ->
-                            val contextEnterEvent = TraceEvent.Enter(
-                                className = contextMethod.className,
-                                methodName = contextMethod.methodName,
-                                args = arrayOf(),
+                        displayableContextMethods.forEachIndexed { i, contextMethod ->
+                            // Use the original context method but with adjusted depth
+                            val contextEnterEvent = contextMethod.copy(
                                 depth = baseDepth + i,
                                 callPath = currentCallPath
                             )
@@ -256,9 +269,12 @@ class MethodTraceAdvice {
                         }
 
                         // Record the depth information in the depth manager
-                        // Note: We need to account for ALL context methods, not just the ones shown
-                        val allContextMethodsCount = contextMethods.size
-                        val actualMethodDepth = depthMgr.onMethodEnter(allContextMethodsCount)
+                        // 🔵 Use logical hierarchy count (not displayable count) because:
+                        // - DepthManager tracks call stack state, not UI display state  
+                        // - displayableContextMethods is "consumed" and may be empty due to deduplication
+                        // - logicalContextHierarchy represents the permanent call relationship
+                        val hierarchyDepthCount = logicalContextHierarchy.size
+                        val actualMethodDepth = depthMgr.onMethodEnter(hierarchyDepthCount)
                         
                         
                         // Update the display depth for the actual method entry
