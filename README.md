@@ -12,21 +12,22 @@ Just wrap your code and see what happens:
 
 ```kotlin
 codePathTrace {
+    val calculator = Calculator()
     calculator.complexCalculation(5, 3)
 }
 ```
 
 **Output:**
 ```
-→ Calculator()
-← Calculator
+→ Calculator.<init>()
+← Calculator.<init>
 → Calculator.complexCalculation(5, 3)
-  → Calculator.add(5, 3)
-  ← Calculator.add = 8
-  → Calculator.multiply(8, 2)
-  ← Calculator.multiply = 16
-  → Calculator.add(16, 12)
-  ← Calculator.add = 28
+ → Calculator.add(5, 3)
+ ← Calculator.add = 8
+ → Calculator.multiply(8, 2)
+ ← Calculator.multiply = 16
+ → Calculator.add(16, 12)
+ ← Calculator.add = 28
 ← Calculator.complexCalculation = 28
 ```
 
