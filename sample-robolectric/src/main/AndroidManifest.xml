@@ -5,5 +5,11 @@
             android:name="io.github.takahirom.codepathtracersample.MainActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         </activity>
+        <activity
+            android:name="io.github.takahirom.codepathtracersample.ComposeActivity"
+            android:label="Compose Sample"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        </activity>
     </application>
 </manifest>
