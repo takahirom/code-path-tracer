@@ -194,7 +194,9 @@ object CodePathTracerAgent {
                 "android.hardware.display.ColorDisplayManager",
                 "android.hardware.display.",
                 "android.view.ViewRootImpl",
-                "android.view.Choreographer"
+                "android.view.Choreographer",
+                "android.app.ActivityThread\$AppBindData",
+                "android.app.Activity\$NonConfigurationInstances"
             )
         } else {
             basePackages
