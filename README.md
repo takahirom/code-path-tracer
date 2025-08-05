@@ -45,8 +45,10 @@ val traceRule = CodePathTracer.Builder()
 **Output reveals the touch event flow:**
 ```
 → PhoneWindow.superDispatchTouchEvent(MotionEvent)
-  → ViewGroup.onInterceptTouchEvent() = false
-  → TextView.onTouchEvent(MotionEvent) = true ✅
+  → ViewGroup.onInterceptTouchEvent(MotionEvent)
+  ← ViewGroup.onInterceptTouchEvent = false
+  → TextView.onTouchEvent(MotionEvent)
+  ← TextView.onTouchEvent = true ✅
 ← PhoneWindow.superDispatchTouchEvent = true
 ```
 
