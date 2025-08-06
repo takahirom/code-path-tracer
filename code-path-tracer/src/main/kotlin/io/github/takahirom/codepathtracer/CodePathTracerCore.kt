@@ -10,7 +10,7 @@ object CodePathTracerCore {
      * Execute code block with tracing enabled
      * This is the central method that handles all tracing lifecycle
      */
-    fun <T> executeWithTracing(config: CodePathTracer.Config, block: () -> T): T {
+    internal fun <T> executeWithTracing(config: CodePathTracer.Config, block: () -> T): T {
         if (!config.enabled) {
             return block()
         }

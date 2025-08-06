@@ -22,9 +22,8 @@ package io.github.takahirom.codepathtracer
  * ```
  */
 class CodePathTracer private constructor(private val config: Config) {
-    
-    
-    data class Config(
+
+    internal data class Config(
         val filter: (TraceEvent) -> Boolean = DefaultFilter::filter,
         val formatter: (TraceEvent) -> String = DefaultFormatter::format,
         val enabled: Boolean = true,
@@ -32,7 +31,8 @@ class CodePathTracer private constructor(private val config: Config) {
         val traceEventGenerator: (AdviceData) -> TraceEvent? = { advice -> defaultTraceEventGenerator(advice) },
         val maxToStringLength: Int = 30,
         val beforeContextSize: Int = 0,
-        val maxIndentDepth: Int = 60
+        val maxIndentDepth: Int = 60,
+        val agentController: CodePathAgentController = CodePathAgentController.default()
     )
     
     /**
@@ -83,6 +83,7 @@ class CodePathTracer private constructor(private val config: Config) {
         private var maxToStringLength: Int = 30
         private var beforeContextSize: Int = 0
         private var maxIndentDepth: Int = 60
+        private var agentController: CodePathAgentController = CodePathAgentController.default()
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
@@ -92,6 +93,7 @@ class CodePathTracer private constructor(private val config: Config) {
         fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
         fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
         fun maxIndentDepth(depth: Int) = apply { this.maxIndentDepth = depth }
+        fun codePathAgentController(controller: CodePathAgentController) = apply { this.agentController = controller }
         
         fun build(): CodePathTracer = CodePathTracer(Config(
             filter = filter,
@@ -101,7 +103,8 @@ class CodePathTracer private constructor(private val config: Config) {
             traceEventGenerator = traceEventGenerator,
             maxToStringLength = maxToStringLength,
             beforeContextSize = beforeContextSize,
-            maxIndentDepth = maxIndentDepth
+            maxIndentDepth = maxIndentDepth,
+            agentController = agentController
         ))
         
         fun asJUnitRule(): CodePathTracerRule = CodePathTracerRule(Config(
@@ -112,7 +115,8 @@ class CodePathTracer private constructor(private val config: Config) {
             traceEventGenerator = traceEventGenerator,
             maxToStringLength = maxToStringLength,
             beforeContextSize = beforeContextSize,
-            maxIndentDepth = maxIndentDepth
+            maxIndentDepth = maxIndentDepth,
+            agentController = agentController
         ))
     }
     
@@ -129,6 +133,7 @@ class CodePathTracer private constructor(private val config: Config) {
             .maxToStringLength(config.maxToStringLength)
             .beforeContextSize(config.beforeContextSize)
             .maxIndentDepth(config.maxIndentDepth)
+            .codePathAgentController(config.agentController)
     }
 }
 
