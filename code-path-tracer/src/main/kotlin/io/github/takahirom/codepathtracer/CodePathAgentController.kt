@@ -193,6 +193,14 @@ class CodePathAgentController private constructor(private val config: Config) {
     class Builder {
         private var ignorePackages: List<String> = Config.defaultIgnorePackages()
         
+        /**
+         * Set packages to ignore during bytecode transformation.
+         * 
+         * **IMPORTANT**: Configuration cannot be changed after agent installation.
+         * The first AgentController created will determine the ignore packages for
+         * the entire JVM process. Subsequent controllers with different settings
+         * will be ignored to maintain ByteBuddy agent consistency.
+         */
         fun ignorePackages(packages: List<String>) = apply { 
             this.ignorePackages = packages 
         }
