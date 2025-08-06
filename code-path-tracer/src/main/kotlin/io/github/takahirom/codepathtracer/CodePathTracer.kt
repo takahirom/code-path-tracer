@@ -93,6 +93,15 @@ class CodePathTracer private constructor(private val config: Config) {
         fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
         fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
         fun maxIndentDepth(depth: Int) = apply { this.maxIndentDepth = depth }
+        
+        /**
+         * Set custom agent controller for ByteBuddy configuration.
+         * 
+         * **IMPORTANT**: Agent configuration cannot be changed after first installation.
+         * The first controller used will determine ByteBuddy settings for the entire
+         * JVM process. Subsequent tracers with different controllers will reuse the
+         * existing agent configuration.
+         */
         fun codePathAgentController(controller: CodePathAgentController) = apply { this.agentController = controller }
         
         fun build(): CodePathTracer = CodePathTracer(Config(
