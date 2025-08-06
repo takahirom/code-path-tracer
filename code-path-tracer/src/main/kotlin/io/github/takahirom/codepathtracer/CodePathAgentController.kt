@@ -79,8 +79,7 @@ internal object CodePathAgentHolder {
 class CodePathAgentController private constructor(private val config: Config) {
     
     internal data class Config(
-        val ignorePackages: List<String> = defaultIgnorePackages(),
-        val ignorePackagesWhenRobolectric: List<String> = defaultRobolectricIgnorePackages()
+        val ignorePackages: List<String> = defaultIgnorePackages()
     ) {
         companion object {
             /**
@@ -103,14 +102,8 @@ class CodePathAgentController private constructor(private val config: Config) {
                 "com.jetbrains.jps.",
                 "org.jetbrains.jps.",
                 // JaCoCo code coverage agent classes
-                "org.jacoco."
-            )
-            
-            /**
-             * Additional packages to ignore when running in Robolectric sandbox environment
-             * These are classes that Robolectric's Reflectors cannot access due to ClassLoader isolation
-             */
-            fun defaultRobolectricIgnorePackages(): List<String> = listOf(
+                "org.jacoco.",
+                // Robolectric Android classes (always included for consistency)
                 "android.view.View\$AttachInfo",
                 "android.hardware.display.ColorDisplayManager",
                 "android.hardware.display.",
@@ -145,15 +138,9 @@ class CodePathAgentController private constructor(private val config: Config) {
     }
 
     /**
-     * Get the complete list of packages to ignore based on current environment
+     * Get the complete list of packages to ignore during transformation
      */
-    internal fun getIgnorePackages(): List<String> {
-        return if (isRobolectricSandboxEnvironment()) {
-            config.ignorePackages + config.ignorePackagesWhenRobolectric
-        } else {
-            config.ignorePackages
-        }
-    }
+    internal fun getIgnorePackages(): List<String> = config.ignorePackages
     
     /**
      * Create ByteBuddy AgentBuilder with current configuration
@@ -239,31 +226,15 @@ class CodePathAgentController private constructor(private val config: Config) {
                className.contains("JvmMethodTraceTest\$methodTraceRule\$")
     }
     
-    private fun isRobolectricSandboxEnvironment(): Boolean {
-        return try {
-            val contextClassLoader = Thread.currentThread().contextClassLoader
-            contextClassLoader?.toString()?.let { classLoaderName ->
-                classLoaderName.contains("AndroidSandbox") || classLoaderName.contains("SdkSandboxClassLoader")
-            } ?: false
-        } catch (e: Exception) {
-            false
-        }
-    }
-    
     class Builder {
         private var ignorePackages: List<String> = Config.defaultIgnorePackages()
-        private var ignorePackagesWhenRobolectric: List<String> = Config.defaultRobolectricIgnorePackages()
         
         fun ignorePackages(packages: List<String>) = apply { 
             this.ignorePackages = packages 
         }
         
-        fun ignorePackagesWhenRobolectric(packages: List<String>) = apply { 
-            this.ignorePackagesWhenRobolectric = packages 
-        }
-        
         fun build(): CodePathAgentController = CodePathAgentController(
-            Config(ignorePackages, ignorePackagesWhenRobolectric)
+            Config(ignorePackages)
         )
     }
     
