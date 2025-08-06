@@ -179,42 +179,6 @@ class CodePathAgentController private constructor(private val config: Config) {
             )
     }
     
-    /**
-     * Auto-detect classes that should be retransformed for tracing.
-     * 
-     * This method efficiently scans loaded classes and identifies candidates for retransformation
-     * based on package patterns commonly used in application and test code. The scanning is
-     * limited to prevent performance degradation.
-     * 
-     * @param instrumentation The Java instrumentation instance
-     * @return List of classes that are candidates for retransformation
-     */
-    private fun findRetransformCandidates(instrumentation: Instrumentation): List<Class<*>> {
-        if (!instrumentation.isRetransformClassesSupported) {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Retransformation not supported")
-            return emptyList()
-        }
-        
-        val loadedClasses = instrumentation.allLoadedClasses
-        val candidates = mutableListOf<Class<*>>()
-        
-        for (clazz in loadedClasses) {
-            try {
-                // Skip if not modifiable
-                if (!instrumentation.isModifiableClass(clazz)) continue
-                
-                // Skip classes that would be ignored anyway
-                if (wouldBeIgnored(clazz.name)) continue
-                
-                // Add class as candidate (filtering will happen at method level)
-                candidates.add(clazz)
-            } catch (_: Exception) {
-                // Skip problematic classes silently
-            }
-        }
-        
-        return candidates.distinct()
-    }
     
     /**
      * Check if a class name would be ignored by the current configuration
