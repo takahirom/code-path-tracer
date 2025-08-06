@@ -180,16 +180,6 @@ class CodePathAgentController private constructor(private val config: Config) {
     }
     
     
-    /**
-     * Check if a class name would be ignored by the current configuration
-     */
-    private fun wouldBeIgnored(className: String): Boolean {
-        return getIgnorePackages().any { className.startsWith(it) } ||
-               className.contains("\$\$Lambda\$") ||
-               className.contains("\$lambda\$") ||
-               className.contains("JvmMethodTraceTest\$methodTraceRule\$")
-    }
-    
     class Builder {
         private var ignorePackages: List<String> = Config.defaultIgnorePackages()
         
