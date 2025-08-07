@@ -38,15 +38,22 @@ class JvmMethodTraceTest {
         // Clear any previous events
         capturedEvents.clear()
         
-        // Verify agent config is available
-        val config = CodePathTracerAgent.getConfig()
-        assert(config != null) { "Expected trace config to be available" }
+        // Verify tracing is working by checking captured events
+        // Note: config is now internal, so we verify by checking events
         
         val calculator = TestCalculator("BusinessCalculator")
         
-        // Test addition
+        // Test addition and verify agent is working
         val result1 = calculator.add(10, 5)
         assert(result1 == 15) { "Expected addition result to be 15, got $result1" }
+        
+        // Verify the agent is actually working through event capture
+        assert(capturedEvents.isNotEmpty()) { "Agent initialization failed - no events captured" }
+        
+        val addEvents = capturedEvents.filter { 
+            it.methodName == "add" && it.className.contains("TestCalculator") 
+        }
+        assert(addEvents.isNotEmpty()) { "Expected 'add' method trace events, got none" }
         
         // Test multiplication
         val result2 = calculator.multiply(result1, 2)
@@ -95,10 +102,8 @@ class JvmMethodTraceTest {
     
     @Test
     fun testSimpleCodePathTrace() {
-        // 先にエージェントを初期化してからクラスをロード
-        CodePathTracerAgent.initialize(
-            CodePathTracer.Config()
-        )
+        // Note: Agent initialization now uses internal API
+        // Using codePathTrace to ensure agent is properly initialized
         val clazz = Class.forName("io.github.takahirom.codepathtracersample.JvmMethodTraceTest\$SampleCalculator")
         assert(clazz != null) { "Expected SampleCalculator class to be loadable" }
         
