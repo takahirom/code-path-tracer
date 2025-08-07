@@ -75,13 +75,6 @@ dependencies {
 }
 ```
 
-### Local Build (Development)
-
-For development or latest features:
-```bash
-git clone https://github.com/takahirom/code-path-finder.git
-./gradlew publishToMavenLocal
-```
 
 ## ✨ Features
 
@@ -179,6 +172,40 @@ This confirms that method tracing works across:
 ./gradlew :code-path-tracer:test  # Run core tests  
 ./gradlew test               # Verify tracing works
 ```
+
+### Local Development with Dependency Substitution
+
+When developing locally and testing changes in another project, you can use Gradle's dependency substitution:
+
+**Add to your project's `settings.gradle.kts`:**
+
+```kotlin
+// Substitute published artifact with local code-path-tracer project
+val localCodePathTracerPath = file("/path/to/local/code-path-tracer")
+if (localCodePathTracerPath.exists()) {
+  includeBuild(localCodePathTracerPath) {
+    dependencySubstitution {
+      substitute(module("io.github.takahirom.codepathtracer:code-path-tracer"))
+        .using(project(":code-path-tracer"))
+    }
+  }
+}
+```
+
+**Or use Maven Local:**
+
+```bash
+# Publish to local Maven repository
+./gradlew publishToMavenLocal
+
+# In your project's build.gradle.kts, add mavenLocal() to repositories:
+repositories {
+    mavenLocal()  // Check local Maven first
+    mavenCentral()
+}
+```
+
+The dependency substitution approach is preferred for active development as changes are reflected immediately without republishing.
 
 ---
 
