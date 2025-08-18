@@ -84,6 +84,25 @@ dependencies {
 
 ## 🎛️ Advanced Configuration
 
+### Context Display with beforeContextSize
+
+Show preceding method calls even when they don't match your filter:
+
+```kotlin
+.filter { event -> event.methodName == "inner" }
+.beforeContextSize(1)  // Show 1 preceding event for context
+```
+
+**Output:**
+```
+→ SimpleNestedHierarchy.middle()    // Context (doesn't match filter)
+ → SimpleNestedHierarchy.inner()     // Matches filter
+ ← SimpleNestedHierarchy.inner
+← SimpleNestedHierarchy.middle
+```
+
+Useful for debugging: See what led to specific method calls, track where null values originated, or understand deep call chains.
+
 ### Custom Formatting 
 
 Want custom formatting? Configure it easily:
@@ -134,21 +153,6 @@ val customTracer = CodePathTracer.Builder()
 codePathTrace(customTracer) {
     calculator.complexCalculation(5, 3)
 }
-```
-
-### Filtering Examples
-
-```kotlin
-// Trace only your app code
-.filter { event -> event.className.startsWith("com.mycompany") }
-
-// Skip common methods
-.filter { event -> 
-    !listOf("toString", "hashCode", "equals").contains(event.methodName)
-}
-
-// Focus on specific depth levels
-.filter { event -> event.depth < 3 }
 ```
 
 
