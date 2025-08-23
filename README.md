@@ -54,6 +54,12 @@ val traceRule = CodePathTracer.Builder()
 
 **Result:** TextView handled the touch! Mystery solved. 🎯
 
+## 🔹 Compose Case Study
+
+We can even understand why recomposition occurs.
+
+<img width="2378" height="1758" alt="clipboard-image-1755913291" src="https://github.com/user-attachments/assets/09d5d8d6-ac5b-4435-93f1-6a7556eae1a1" />
+
 ## 💡 Motivation
 
 Traditional debugging tools can be challenging for AI developers and complex scenarios:
