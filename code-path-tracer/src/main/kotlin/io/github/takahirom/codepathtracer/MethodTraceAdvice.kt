@@ -144,6 +144,17 @@ class MethodTraceAdvice {
             } else emptyList()
         }
         
+        private fun logSafe(config: CodePathTracer.Config, event: TraceEvent) {
+            runCatching {
+                config.logger(config.formatter(event))
+            }.onFailure { t ->
+                if (CodePathTracer.DEBUG) {
+                    val msg = "[MethodTrace] Logger failed: ${t::class.simpleName}: ${t.message}"
+                    runCatching { CodePathTracer.getDebugLogger()(msg) }
+                }
+            }
+        }
+        
         @JvmStatic
         @net.bytebuddy.asm.Advice.OnMethodEnter
         fun methodEnter(
@@ -265,7 +276,7 @@ class MethodTraceAdvice {
                                 depth = baseDepth + i,
                                 callPath = currentCallPath
                             )
-                            println(config.formatter(contextEnterEvent))
+                            logSafe(config, contextEnterEvent)
                         }
 
                         // Record the depth information in the depth manager
@@ -282,7 +293,7 @@ class MethodTraceAdvice {
                             is TraceEvent.Enter -> traceEvent.copy(depth = actualMethodDepth)
                             is TraceEvent.Exit -> traceEvent.copy(depth = actualMethodDepth)
                         }
-                        println(config.formatter(adjustedEvent))
+                        logSafe(config, adjustedEvent)
                         return  // Exit early since we've already printed
                     } else {
                         // No context methods, use depth manager for simple case
@@ -294,7 +305,7 @@ class MethodTraceAdvice {
                             is TraceEvent.Enter -> traceEvent.copy(depth = actualMethodDepth)
                             is TraceEvent.Exit -> traceEvent.copy(depth = actualMethodDepth)
                         }
-                        println(config.formatter(adjustedEvent))
+                        logSafe(config, adjustedEvent)
                         return  // Exit early since we've already printed
                     }
                 }
@@ -310,7 +321,7 @@ class MethodTraceAdvice {
                     is TraceEvent.Enter -> traceEvent.copy(depth = displayDepth)
                     is TraceEvent.Exit -> traceEvent.copy(depth = displayDepth)
                 }
-                println(config.formatter(adjustedEvent))
+                logSafe(config, adjustedEvent)
             } finally {
                 isTracing.set(false)
             }
@@ -369,16 +380,15 @@ class MethodTraceAdvice {
                     val depthMgr = depthManager.get() ?: DepthManager().also { depthManager.set(it) }
                     val exitDepth = depthMgr.onMethodExit()
                     val adjustedEvent = (traceEvent as TraceEvent.Exit).copy(depth = maxOf(0, exitDepth))
-                    println(config.formatter(adjustedEvent))
+                    logSafe(config, adjustedEvent)
                 }
                 
                 // Generate context Exit events if enabled and we have queued exits  
                 // This runs for ALL method exits (filtered or not) to catch context method exits
                 if (config.beforeContextSize > 0) {
                     contextExitTracker.get()?.popContextExitsForDepth(depth)?.forEach { exit ->
-                        println(config.formatter(
-                            TraceEvent.Exit(exit.className, exit.methodName, null, exit.displayDepth, currentCallPath)
-                        ))
+                        val event = TraceEvent.Exit(exit.className, exit.methodName, null, exit.displayDepth, currentCallPath)
+                        logSafe(config, event)
                     }
                 }
             } finally {

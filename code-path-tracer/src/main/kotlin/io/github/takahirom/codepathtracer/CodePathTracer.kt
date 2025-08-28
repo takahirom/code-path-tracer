@@ -1,5 +1,13 @@
 package io.github.takahirom.codepathtracer
 
+fun interface Logger: (String) -> Unit
+
+object DefaultLogger {
+    val PRINTLN: Logger = Logger{
+        println(it)
+    }
+}
+
 /**
  * Code Path Tracer - Main API for tracing method execution paths
  * 
@@ -32,7 +40,8 @@ class CodePathTracer private constructor(private val config: Config) {
         val maxToStringLength: Int = 30,
         val beforeContextSize: Int = 0,
         val maxIndentDepth: Int = 60,
-        val agentController: CodePathAgentController = CodePathAgentController.default()
+        val agentController: CodePathAgentController = CodePathAgentController.default(),
+        val logger: Logger = getDefaultLogger()
     )
     
     /**
@@ -46,7 +55,41 @@ class CodePathTracer private constructor(private val config: Config) {
         /**
          * Global debug flag for all tracing components
          */
-        var DEBUG = false
+        @Volatile var DEBUG = false
+        
+        /**
+         * Default logger for all tracing operations
+         */
+        @Volatile private var defaultLogger: Logger = DefaultLogger.PRINTLN
+        
+        /**
+         * Debug logger for system-level debug messages
+         */
+        @Volatile private var debugLogger: Logger = DefaultLogger.PRINTLN
+        
+        /**
+         * Set the default logger for all CodePathTracer instances
+         */
+        fun setDefaultLogger(logger: Logger?) {
+            defaultLogger = logger ?: DefaultLogger.PRINTLN
+        }
+        
+        /**
+         * Set the debug logger for system-level debug messages
+         */
+        fun setDebugLogger(logger: Logger?) {
+            debugLogger = logger ?: DefaultLogger.PRINTLN
+        }
+        
+        /**
+         * Get the current default logger
+         */
+        internal fun getDefaultLogger(): Logger = defaultLogger
+        
+        /**
+         * Get the current debug logger
+         */
+        internal fun getDebugLogger(): Logger = debugLogger
         
         /**
          * Default implementation to convert AdviceData to TraceEvent
@@ -84,6 +127,7 @@ class CodePathTracer private constructor(private val config: Config) {
         private var beforeContextSize: Int = 0
         private var maxIndentDepth: Int = 60
         private var agentController: CodePathAgentController = CodePathAgentController.default()
+        private var logger: Logger = getDefaultLogger()
         
         fun filter(predicate: (TraceEvent) -> Boolean) = apply { this.filter = predicate }
         fun formatter(format: (TraceEvent) -> String) = apply { this.formatter = format }
@@ -93,6 +137,7 @@ class CodePathTracer private constructor(private val config: Config) {
         fun maxToStringLength(length: Int) = apply { this.maxToStringLength = length }
         fun beforeContextSize(size: Int) = apply { this.beforeContextSize = size }
         fun maxIndentDepth(depth: Int) = apply { this.maxIndentDepth = depth }
+        fun logger(logger: Logger) = apply { this.logger = logger }
         
         /**
          * Set custom agent controller for ByteBuddy configuration.
@@ -113,7 +158,8 @@ class CodePathTracer private constructor(private val config: Config) {
             maxToStringLength = maxToStringLength,
             beforeContextSize = beforeContextSize,
             maxIndentDepth = maxIndentDepth,
-            agentController = agentController
+            agentController = agentController,
+            logger = logger
         ))
         
         fun asJUnitRule(): CodePathTracerRule = CodePathTracerRule(Config(
@@ -125,7 +171,8 @@ class CodePathTracer private constructor(private val config: Config) {
             maxToStringLength = maxToStringLength,
             beforeContextSize = beforeContextSize,
             maxIndentDepth = maxIndentDepth,
-            agentController = agentController
+            agentController = agentController,
+            logger = logger
         ))
     }
     
@@ -143,6 +190,7 @@ class CodePathTracer private constructor(private val config: Config) {
             .beforeContextSize(config.beforeContextSize)
             .maxIndentDepth(config.maxIndentDepth)
             .codePathAgentController(config.agentController)
+            .logger(config.logger)
     }
 }
 
