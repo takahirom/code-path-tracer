@@ -145,11 +145,12 @@ class MethodTraceAdvice {
         }
         
         private fun logSafe(config: CodePathTracer.Config, event: TraceEvent) {
-            runCatching { 
+            runCatching {
                 config.logger(config.formatter(event))
-            }.onFailure { 
+            }.onFailure { t ->
                 if (CodePathTracer.DEBUG) {
-                    CodePathTracer.getDebugLogger()("[MethodTrace] Logger failed: ${it.message}")
+                    val msg = "[MethodTrace] Logger failed: ${t::class.simpleName}: ${t.message}"
+                    runCatching { CodePathTracer.getDebugLogger()(msg) }
                 }
             }
         }

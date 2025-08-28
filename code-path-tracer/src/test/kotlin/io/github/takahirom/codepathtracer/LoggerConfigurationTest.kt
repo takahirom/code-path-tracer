@@ -205,11 +205,12 @@ class LoggerConfigurationTest {
             )
             
             // Simulate what logSafe does - this should not throw
-            runCatching { 
+            runCatching {
                 config.logger(config.formatter(testEvent))
-            }.onFailure { 
+            }.onFailure { t ->
                 if (CodePathTracer.DEBUG) {
-                    CodePathTracer.getDebugLogger()("[MethodTrace] Logger failed: ${it.message}")
+                    val msg = "[MethodTrace] Logger failed: ${t::class.simpleName}: ${t.message}"
+                    runCatching { CodePathTracer.getDebugLogger()(msg) }
                 }
             }
             
@@ -217,10 +218,68 @@ class LoggerConfigurationTest {
             assertFalse("Debug logger should have captured exception messages", debugLogs.isEmpty())
             val logMessages = debugLogs.toList()
             assertTrue("Expected to find logger failure message", 
-                logMessages.any { it.contains("Logger failed") && it.contains("boom") })
+                logMessages.any { it.contains("Logger failed") && it.contains("RuntimeException") && it.contains("boom") })
                 
         } finally {
             CodePathTracer.setDebugLogger(DefaultLogger.PRINTLN)
+            CodePathTracer.DEBUG = originalDebug
+        }
+    }
+
+    
+    @Test
+    fun testBothLoggersThrowExceptions() {
+        val originalDebug = CodePathTracer.DEBUG
+        
+        try {
+            // Enable debug logging
+            CodePathTracer.DEBUG = true
+            
+            // Set both loggers to throw exceptions
+            val throwingLogger = Logger { throw RuntimeException("main logger boom") }
+            val throwingDebugLogger = Logger { throw RuntimeException("debug logger boom") }
+            
+            CodePathTracer.setDefaultLogger(throwingLogger)
+            CodePathTracer.setDebugLogger(throwingDebugLogger)
+            
+            // Create a config with the throwing logger
+            val config = CodePathTracer.Config(
+                filter = { true },
+                formatter = { event -> "test: ${event.className}.${event.methodName}" },
+                enabled = true,
+                autoRetransform = true,
+                traceEventGenerator = { CodePathTracer.defaultTraceEventGenerator(it) },
+                maxToStringLength = 30,
+                beforeContextSize = 0,
+                maxIndentDepth = 60,
+                agentController = CodePathAgentController.default(),
+                logger = throwingLogger
+            )
+            
+            // Create a test event
+            val testEvent = TraceEvent.Enter(
+                className = "TestClass",
+                methodName = "testMethod",
+                args = arrayOf("test"),
+                depth = 0,
+                callPath = emptyList()
+            )
+            
+            // Simulate what logSafe does - this should not throw even with both loggers failing
+            runCatching {
+                config.logger(config.formatter(testEvent))
+            }.onFailure { t ->
+                if (CodePathTracer.DEBUG) {
+                    val msg = "[MethodTrace] Logger failed: ${t::class.simpleName}: ${t.message}"
+                    runCatching { CodePathTracer.getDebugLogger()(msg) }
+                }
+            }
+            
+            // Test passes by not throwing an exception - no additional assertion needed
+                
+        } finally {
+            CodePathTracer.setDebugLogger(DefaultLogger.PRINTLN)
+            CodePathTracer.setDefaultLogger(DefaultLogger.PRINTLN)
             CodePathTracer.DEBUG = originalDebug
         }
     }
