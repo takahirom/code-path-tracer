@@ -55,17 +55,17 @@ class CodePathTracer private constructor(private val config: Config) {
         /**
          * Global debug flag for all tracing components
          */
-        var DEBUG = false
+        @Volatile var DEBUG = false
         
         /**
          * Default logger for all tracing operations
          */
-        private var defaultLogger: Logger = DefaultLogger.PRINTLN
+        @Volatile private var defaultLogger: Logger = DefaultLogger.PRINTLN
         
         /**
          * Debug logger for system-level debug messages
          */
-        private var debugLogger: Logger = DefaultLogger.PRINTLN
+        @Volatile private var debugLogger: Logger = DefaultLogger.PRINTLN
         
         /**
          * Set the default logger for all CodePathTracer instances

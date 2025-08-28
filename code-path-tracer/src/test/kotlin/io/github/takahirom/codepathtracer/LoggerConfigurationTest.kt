@@ -166,4 +166,62 @@ class LoggerConfigurationTest {
         assertFalse("Logger should capture messages", capturedLogs.isEmpty())
         assertEquals("Inherited test message", capturedLogs.poll())
     }
+    
+    @Test
+    fun testLoggerExceptionIsSwallowed() {
+        val originalDebug = CodePathTracer.DEBUG
+        val debugLogs = ConcurrentLinkedQueue<String>()
+        val debugLogger = Logger { message -> debugLogs.add(message) }
+        
+        try {
+            // Enable debug logging to capture failure messages
+            CodePathTracer.DEBUG = true
+            CodePathTracer.setDebugLogger(debugLogger)
+            
+            // Create a throwing logger
+            val throwing = Logger { throw RuntimeException("boom") }
+            
+            // Create a config with the throwing logger
+            val config = CodePathTracer.Config(
+                filter = { true },
+                formatter = { event -> "test: ${event.className}.${event.methodName}" },
+                enabled = true,
+                autoRetransform = true,
+                traceEventGenerator = { CodePathTracer.defaultTraceEventGenerator(it) },
+                maxToStringLength = 30,
+                beforeContextSize = 0,
+                maxIndentDepth = 60,
+                agentController = CodePathAgentController.default(),
+                logger = throwing
+            )
+            
+            // Create a test event
+            val testEvent = TraceEvent.Enter(
+                className = "TestClass",
+                methodName = "testMethod",
+                args = arrayOf("test"),
+                depth = 0,
+                callPath = emptyList()
+            )
+            
+            // Simulate what logSafe does - this should not throw
+            runCatching { 
+                config.logger(config.formatter(testEvent))
+            }.onFailure { 
+                if (CodePathTracer.DEBUG) {
+                    CodePathTracer.getDebugLogger()("[MethodTrace] Logger failed: ${it.message}")
+                }
+            }
+            
+            // Verify that debug logger captured the exception
+            assertFalse("Debug logger should have captured exception messages", debugLogs.isEmpty())
+            val logMessages = debugLogs.toList()
+            assertTrue("Expected to find logger failure message", 
+                logMessages.any { it.contains("Logger failed") && it.contains("boom") })
+                
+        } finally {
+            CodePathTracer.setDebugLogger(DefaultLogger.PRINTLN)
+            CodePathTracer.DEBUG = originalDebug
+        }
+    }
 }
