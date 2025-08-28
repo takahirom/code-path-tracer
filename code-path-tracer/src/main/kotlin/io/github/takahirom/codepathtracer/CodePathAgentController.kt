@@ -19,23 +19,23 @@ internal object CodePathAgentHolder {
     @Synchronized
     internal fun ensureInstalled(agentBuilder: AgentBuilder): Boolean {
         if (isInitialized) {
-            if (CodePathTracer.DEBUG) println("[AgentHolder] Agent already installed")
+            if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[AgentHolder] Agent already installed")
             return true
         }
         
-        if (CodePathTracer.DEBUG) println("[AgentHolder] Installing ByteBuddy Agent...")
+        if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[AgentHolder] Installing ByteBuddy Agent...")
         
         try {
             instrumentation = net.bytebuddy.agent.ByteBuddyAgent.install()
             resettableTransformer = agentBuilder.installOnByteBuddyAgent()
             isInitialized = true
             
-            if (CodePathTracer.DEBUG) println("[AgentHolder] ByteBuddy Agent installed successfully")
+            if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[AgentHolder] ByteBuddy Agent installed successfully")
             return true
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) {
-                println("[AgentHolder] Agent installation FAILED: ${e.message}")
-                e.printStackTrace()
+                CodePathTracer.getDebugLogger()("[AgentHolder] Agent installation FAILED: ${e.message}")
+                CodePathTracer.getDebugLogger()(e.stackTraceToString())
             }
             return false
         }
@@ -51,16 +51,16 @@ internal object CodePathAgentHolder {
                     AgentBuilder.RedefinitionStrategy.RETRANSFORMATION
                 )
                 if (CodePathTracer.DEBUG) {
-                    println("[AgentHolder] ByteBuddy transformer reset: $resetSuccess")
+                    CodePathTracer.getDebugLogger()("[AgentHolder] ByteBuddy transformer reset: $resetSuccess")
                 }
             } else {
                 if (CodePathTracer.DEBUG) {
-                    println("[AgentHolder] No instrumentation available for reset")
+                    CodePathTracer.getDebugLogger()("[AgentHolder] No instrumentation available for reset")
                 }
             }
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) {
-                println("[AgentHolder] Failed to reset transformer: ${e.message}")
+                CodePathTracer.getDebugLogger()("[AgentHolder] Failed to reset transformer: ${e.message}")
             }
         }
         
@@ -220,7 +220,7 @@ private class DebugListener : AgentBuilder.Listener {
         loaded: Boolean,
         dynamicType: net.bytebuddy.dynamic.DynamicType
     ) {
-        if (CodePathTracer.DEBUG) println("[MethodTrace] Transformation: ${typeDescription.name}")
+        if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[MethodTrace] Transformation: ${typeDescription.name}")
     }
 
     override fun onIgnored(
@@ -240,8 +240,8 @@ private class DebugListener : AgentBuilder.Listener {
         throwable: Throwable
     ) {
         if (CodePathTracer.DEBUG) {
-            println("[MethodTrace] Error: $typeName - ${throwable.message}")
-            throwable.printStackTrace()
+            CodePathTracer.getDebugLogger()("[MethodTrace] Error: $typeName - ${throwable.message}")
+            CodePathTracer.getDebugLogger()(throwable.stackTraceToString())
         }
     }
 

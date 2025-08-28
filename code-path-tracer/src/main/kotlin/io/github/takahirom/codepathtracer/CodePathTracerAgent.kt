@@ -1,7 +1,5 @@
 package io.github.takahirom.codepathtracer
 
-// DEBUG flag moved to CodePathTracer.DEBUG
-
 /**
  * ByteBuddy automatic transformation agent (delegating to CodePathAgentController)
  */
@@ -29,9 +27,9 @@ object CodePathTracerAgent {
         
         if (newConfig != null) {
             DefaultFormatter.defaultMaxLength = newConfig.maxToStringLength
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Config updated: $newConfig")
+            if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[MethodTrace] Config updated: $newConfig")
         } else {
-            if (CodePathTracer.DEBUG) println("[MethodTrace] Config cleared (tracing disabled)")
+            if (CodePathTracer.DEBUG) CodePathTracer.getDebugLogger()("[MethodTrace] Config cleared (tracing disabled)")
         }
     }
 
@@ -53,7 +51,7 @@ object CodePathTracerAgent {
             MethodTraceAdvice.cleanup()
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) {
-                println("[TracerAgent] Failed to cleanup ThreadLocal: ${e.message}")
+                CodePathTracer.getDebugLogger()("[TracerAgent] Failed to cleanup ThreadLocal: ${e.message}")
             }
         }
     }
@@ -72,7 +70,7 @@ object CodePathTracerAgent {
             MethodTraceAdvice.cleanup()
         } catch (e: Exception) {
             if (CodePathTracer.DEBUG) {
-                println("[TracerAgent] Failed to cleanup ThreadLocal: ${e.message}")
+                CodePathTracer.getDebugLogger()("[TracerAgent] Failed to cleanup ThreadLocal: ${e.message}")
             }
         }
         
