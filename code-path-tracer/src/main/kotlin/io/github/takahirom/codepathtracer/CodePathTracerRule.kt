@@ -14,13 +14,13 @@ object DefaultFilter {
  * Usage:
  * ```
  * @get:Rule
- * val codePathTracerRule = CodePathTracerRule.builder()
- *     .packageIncludes("io.github.takahirom.codepathtracer")
- *     .methodExcludes("toString", "hashCode", "equals")
- *     .build()
+ * val codePathTracerRule = CodePathTracer.Builder()
+ *     .filter { event -> event.className.contains("MyClass") }
+ *     .formatter { event -> "Custom: ${event.methodName}" }
+ *     .asJUnitRule()
  *
  * // Or with custom filter/formatter
- * val customRule = CodePathTracerRule.builder()
+ * val customRule = CodePathTracer.Builder()
  *     .filter { event ->
  *         event.className.startsWith("com.example") &&
  *         event.depth < 5
@@ -28,7 +28,7 @@ object DefaultFilter {
  *     .formatter { event ->
  *         "${" ".repeat(event.depth)}${event.fullMethodName}(${event.args.size})"
  *     }
- *     .build()
+ *     .asJUnitRule()
  * ```
  */
 class CodePathTracerRule internal constructor(
